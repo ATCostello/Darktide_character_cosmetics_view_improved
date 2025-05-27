@@ -9,6 +9,13 @@ local UIWidget = require("scripts/managers/ui/ui_widget")
 local UISettings = require("scripts/settings/ui/ui_settings")
 local UISoundEvents = require("scripts/settings/ui/ui_sound_events")
 local InventoryCosmeticsView = require("scripts/ui/views/inventory_cosmetics_view/inventory_cosmetics_view")
+local InventoryBackgroundView = require("scripts/ui/views/inventory_background_view/inventory_background_view")
+local ProfileUtils = require("scripts/utilities/profile_utils")
+local ViewElementProfilePresets = require("scripts/ui/view_elements/view_element_profile_presets/view_element_profile_presets")
+local ViewElementCosmeticPresets = mod:io_dofile(
+                                       "character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/view_element_cosmetic_presets"
+                                   )
+
 local StoreView = require("scripts/ui/views/store_view/store_view")
 local CCVIData = mod:io_dofile(
                      "character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/character_cosmetics_view_improved_data"
@@ -22,6 +29,104 @@ current_commodores_offers = {}
 mod.on_all_mods_loaded = function()
     mod.get_wishlist()
 end
+
+InventoryBackgroundView.event_on_profile_preset_changed = function(self, profile_preset, on_preset_deleted)
+    local active_layout = self._active_talent_loadout
+    local active_layout_version = active_layout.version
+    local previously_active_profile_preset_id = self._active_profile_preset_id
+
+    if previously_active_profile_preset_id then
+        local current_profile_equipped_talents = self._current_profile_equipped_talents
+
+        ProfileUtils.save_talent_nodes_for_profile_preset(previously_active_profile_preset_id, current_profile_equipped_talents, active_layout_version)
+    end
+
+    if profile_preset and profile_preset.loadout then
+        for slot_id, gear_id in pairs(profile_preset.loadout) do
+            local item = self:_get_inventory_item_by_id(gear_id)
+
+            if item then
+                if mod:get("unhook_cosmetics_from_presets") == true then
+                    if slot_id == "slot_primary" or slot_id == "slot_secondary" or slot_id == "slot_attachment_1" or slot_id == "slot_attachment_2" or
+                        slot_id == "slot_attachment_3" then
+                        self:_equip_slot_item(slot_id, item)
+                    end
+                else
+                    self:_equip_slot_item(slot_id, item)
+                end
+            end
+        end
+    end
+
+    if profile_preset then
+        local active_talent_loadout = self._active_talent_loadout
+        local active_talent_version = active_talent_loadout.version
+
+        if profile_preset.talents_version == active_talent_version then
+            self._current_profile_equipped_talents = profile_preset.talents or {}
+        else
+            self._current_profile_equipped_talents = {}
+        end
+    else
+        self:_apply_current_talents_to_profile()
+    end
+
+    self._active_profile_preset_id = ProfileUtils.get_active_profile_preset_id()
+
+    self:_update_loadout_validation()
+    self:_update_presentation_wield_item()
+
+    if not table.is_empty(self._invalid_slots) or not table.is_empty(self._duplicated_slots) or not table.is_empty(self._modified_slots) then
+        Managers.event:trigger("event_add_notification_message", "alert", {text = Localize("loc_inventory_error_loadout_items")})
+    end
+end
+
+InventoryBackgroundView.event_on_profile_cosmetic_preset_changed = function(self, profile_preset, on_preset_deleted)
+    if profile_preset and profile_preset.loadout then
+        for slot_id, gear_id in pairs(profile_preset.loadout) do
+            local item = self:_get_inventory_item_by_id(gear_id)
+
+            if item then
+                if slot_id ~= "slot_primary" and slot_id ~= "slot_secondary" and slot_id ~= "slot_attachment_1" and slot_id ~= "slot_attachment_2" and
+                    slot_id ~= "slot_attachment_3" then
+
+                    local presentation_profile = self._presentation_profile
+                    local presentation_loadout = presentation_profile.loadout
+
+                    local item_gear_id = type(item) == "table" and item.gear_id or type(item) == "string" and item
+
+                    presentation_loadout[slot_id] = item
+
+                    local player_profile = self._presentation_profile
+
+                    InventoryBackgroundView._equip_local_changes(self)
+                end
+            end
+        end
+    end
+end
+
+mod:hook_safe(
+    CLASS.InventoryBackgroundView, "_setup_top_panel", function(self)
+
+        -- Remove the default profile (loadout) presets bar from the top right on the cosmetics screen.
+        self._views_settings[2].enter = function()
+            if mod:get("unhook_cosmetics_from_presets") == true then
+                self:_remove_profile_presets()
+                -- self._cosmetic_presets_element = self:_add_element(ViewElementCosmeticPresets, "cosmetic_presets", 90, nil, "profile_presets_pivot")
+                self:_register_event("event_on_profile_cosmetic_preset_changed")
+            end
+        end
+
+        self._views_settings[2].leave = function()
+            if mod:get("unhook_cosmetics_from_presets") == true then
+                self:_setup_profile_presets()
+                self:_remove_element("cosmetic_presets")
+            end
+        end
+
+    end
+)
 
 mod:hook_safe(
     CLASS.InventoryCosmeticsView, "_start_show_layout", function(self, element)
@@ -878,190 +983,329 @@ mod.get_item_in_current_commodores = function(self, gearid, item_name)
     end
 end
 
+local WIDGET_TYPE_BY_SLOT = {
+    slot_animation_emote_1 = "ui_item", slot_animation_emote_2 = "ui_item", slot_animation_emote_3 = "ui_item", slot_animation_emote_4 = "ui_item",
+    slot_animation_emote_5 = "ui_item", slot_animation_end_of_round = "gear_item", slot_character_title = "character_title_item",
+    slot_gear_extra_cosmetic = "gear_item", slot_gear_head = "gear_item", slot_gear_lowerbody = "gear_item", slot_gear_upperbody = "gear_item",
+    slot_insignia = "ui_item", slot_portrait_frame = "ui_item"
+}
+
 -- Fill out the UI cosmetics grid with all unlocked, then locked cosmetics.
 mod.list_premium_cosmetics = function(self)
     local selected_item_slot = self._selected_slot
-    local _store_promise = mod.grab_current_commodores_items(self)
-    _store_promise:next(
-        function()
-            if selected_item_slot.name == "slot_gear_head" or selected_item_slot.name == "slot_gear_lowerbody" or selected_item_slot.name ==
-                "slot_gear_upperbody" or selected_item_slot.name == "slot_gear_extra_cosmetic" then
+
+    if selected_item_slot then
+
+        local _store_promise = mod.grab_current_commodores_items(self)
+        _store_promise:next(
+            function()
+
                 local current_cosmetics = mod.get_cosmetic_items(self, selected_item_slot.name)
 
-                local layout = {}
+                if selected_item_slot.name == "slot_gear_head" or selected_item_slot.name == "slot_gear_lowerbody" or selected_item_slot.name ==
+                    "slot_gear_upperbody" or selected_item_slot.name == "slot_gear_extra_cosmetic" then
 
-                local unlocked_items = {}
-                -- Add unlocked cosmetics
-                local player = self._preview_player
-                local profile = player:profile()
-                local currentarchetype = profile.archetype
-                local currentbreed = currentarchetype.breed
-                mod:dump(self._inventory_items, "inv items")
-                for i = 1, #self._inventory_items do
-                    local item = self._inventory_items[i]
-                    if item then
+                    local layout = {}
 
-                        local forcurrentbreed = false
+                    local unlocked_items = {}
+                    -- Add unlocked cosmetics
+                    local player = self._preview_player
+                    local profile = player:profile()
+                    local currentarchetype = profile.archetype
+                    local currentbreed = currentarchetype.breed
 
-                        if item.breeds then
-                            for x, breed in pairs(item.breeds) do
-                                if breed == currentbreed then
-                                    if item.archetypes then
-                                        for y, archetypename in pairs(item.archetypes) do
-                                            if archetypename == currentarchetype.name then
-                                                forcurrentbreed = true
+                    for i = 1, #self._inventory_items do
+                        local item = self._inventory_items[i]
+                        if item then
+
+                            local forcurrentbreed = false
+
+                            if item.breeds then
+                                for x, breed in pairs(item.breeds) do
+                                    if breed == currentbreed then
+                                        if item.archetypes then
+                                            for y, archetypename in pairs(item.archetypes) do
+                                                if archetypename == currentarchetype.name then
+                                                    forcurrentbreed = true
+                                                end
+                                            end
+                                        else
+                                            forcurrentbreed = true
+                                        end
+                                    end
+                                end
+                                local valid = true
+
+                                if forcurrentbreed then
+
+                                    -- Remove incorrect background prisoner garbs
+                                    if string.find(item.__master_item.display_name, "prisoner") then
+
+                                        if item.__master_item.crimes and #item.__master_item.crimes > 0 and profile.lore and profile.lore.backstory and
+                                            profile.lore.backstory.crime then
+                                            valid = false
+                                            for i, crime in pairs(item.__master_item.crimes) do
+                                                if profile.lore.backstory.crime == crime then
+                                                    valid = true
+                                                end
                                             end
                                         end
-                                    else
-                                        forcurrentbreed = true
+                                    end
+
+                                    if valid then
+
+                                        local gear_id = item.gear_id
+                                        local is_new = self._context and self._context.new_items_gear_ids and
+                                                           self._context.new_items_gear_ids[gear_id]
+                                        local remove_new_marker_callback
+
+                                        -- find if item is on wishlist
+                                        local item_on_wishlist = false
+                                        local previewed_item_name = item.__master_item.dev_name
+                                        if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
+                                            for i, item1 in pairs(wishlisted_items) do
+                                                if item1 and item1.dev_name == previewed_item_name then
+                                                    item_on_wishlist = true
+                                                end
+                                            end
+                                        end
+
+                                        -- remove purchased items from wishlist
+                                        if item_on_wishlist then
+                                            mod.remove_item_from_wishlist(item.__master_item)
+                                        end
+
+                                        if is_new then
+                                            remove_new_marker_callback = self._parent and callback(self._parent, "remove_new_item_mark")
+                                        end
+
+                                        unlocked_items[#unlocked_items + 1] = item.__master_item.name
+                                        layout[#layout + 1] = {
+                                            widget_type = "gear_item", sort_data = item, item = item, locked = false, slot = selected_item_slot,
+                                            new_item_marker = is_new, remove_new_marker_callback = remove_new_marker_callback, profile = profile
+                                        }
                                     end
                                 end
                             end
-                            local valid = true
+                        end
+                    end
 
-                            if forcurrentbreed then
+                    -- Add divider
+                    layout[#layout + 1] = {widget_type = "divider"}
 
-                                -- Remove incorrect background prisoner garbs
-                                if string.find(item.__master_item.display_name, "prisoner") then
+                    -- Add locked cosmetics
+                    for i = 1, #current_cosmetics do
+                        local item = _item_plus_overrides(current_cosmetics[i], current_cosmetics[i].__gear, current_cosmetics[i].__gear_id, false)
+                        if item then
+                            local continue = true
 
-                                    if item.__master_item.crimes and #item.__master_item.crimes > 0 and profile.lore and profile.lore.backstory and
-                                        profile.lore.backstory.crime then
-                                        valid = false
-                                        for i, crime in pairs(item.__master_item.crimes) do
-                                            if profile.lore.backstory.crime == crime then
-                                                valid = true
+                            local gear_id = item.gear_id
+                            local is_new = self._context and self._context.new_items_gear_ids and self._context.new_items_gear_ids[gear_id]
+                            local remove_new_marker_callback
+
+                            if is_new then
+                                remove_new_marker_callback = self._parent and callback(self._parent, "remove_new_item_mark")
+                            end
+
+                            -- filter out unlocked items
+                            for x, unlocked_item_name in pairs(unlocked_items) do
+                                if item.name == unlocked_item_name then
+                                    continue = false
+                                end
+                            end
+
+                            -- Filter out unknown sources
+                            if not mod:get("show_unobtainable") then
+                                if item.source == nil or item.source < 1 then
+                                    continue = false
+                                end
+                            end
+
+                            -- Filter out "NONE" commodore filter
+                            if self._commodores_toggle == "loc_VPCC_show_no_commodores" and item.source == 3 then
+                                continue = false
+                            end
+
+                            -- Get purchase offer if item is in store.
+                            local purchase_offer = nil
+                            purchase_offer = mod.get_item_in_current_commodores(self, gear_id, item.name)
+                            -- if the source isn't "commodores vestures" yet the item is available in store - set the correct source...
+                            if purchase_offer and item.source ~= 3 then
+                                item.source = 3
+                            end
+
+                            if self._commodores_toggle == "loc_VPCC_show_available_commodores" and item.source == 3 and not purchase_offer then
+                                continue = false
+                            end
+
+                            -- find if item is on wishlist
+                            local item_on_wishlist = false
+                            local widgets_by_name = self._widgets_by_name
+
+                            local previewed_item_name = item.__master_item.dev_name
+                            if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
+                                for i, item1 in pairs(wishlisted_items) do
+                                    if item1 and item1.dev_name == previewed_item_name then
+                                        item_on_wishlist = true
+                                    end
+                                end
+                            end
+
+                            -- remove purchased items from wishlist
+                            if item_on_wishlist and item.__locked and item.__locked == false then
+                                mod.remove_item_from_wishlist(item.__master_item)
+                            end
+
+                            if continue then
+                                layout[#layout + 1] = {
+                                    widget_type = "gear_item", -- ui_item
+                                    sort_data = item, item = item, slot = selected_item_slot, new_item_marker = is_new,
+                                    remove_new_marker_callback = remove_new_marker_callback, locked = true, profile = profile,
+                                    purchase_offer = purchase_offer, item_on_wishlist = item_on_wishlist
+                                }
+                            end
+                        end
+                    end
+
+                    self._offer_items_layout = table.clone_instance(layout)
+
+                    self:_present_layout_by_slot_filter(nil, nil, selected_item_slot.display_name)
+                else
+
+                    -- anything other than hats, torso, legs, back 
+                    local selected_slot_name = selected_item_slot.name
+                    local layout = {}
+
+                    local unlocked_items = {}
+
+                    -- Add unlocked cosmetics
+                    local player = self._preview_player
+                    local profile = player:profile()
+                    local currentarchetype = profile.archetype
+                    local currentbreed = currentarchetype.breed
+
+                    for i = 1, #self._inventory_items do
+                        local item = self._inventory_items[i]
+                        if item then
+
+                            local forcurrentbreed = false
+
+                            if item.breeds then
+                                for x, breed in pairs(item.breeds) do
+                                    if breed == currentbreed then
+                                        if item.archetypes then
+                                            for y, archetypename in pairs(item.archetypes) do
+                                                if archetypename == currentarchetype.name then
+                                                    forcurrentbreed = true
+                                                end
                                             end
+                                        else
+                                            forcurrentbreed = true
                                         end
                                     end
                                 end
+                                local valid = true
 
-                                if valid then
-
+                                if forcurrentbreed then
                                     local gear_id = item.gear_id
                                     local is_new = self._context and self._context.new_items_gear_ids and self._context.new_items_gear_ids[gear_id]
                                     local remove_new_marker_callback
-
-                                    -- find if item is on wishlist
-                                    local item_on_wishlist = false
-                                    local previewed_item_name = item.__master_item.dev_name
-                                    if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
-                                        for i, item1 in pairs(wishlisted_items) do
-                                            if item1 and item1.dev_name == previewed_item_name then
-                                                item_on_wishlist = true
-                                            end
-                                        end
-                                    end
-
-                                    -- remove purchased items from wishlist
-                                    if item_on_wishlist then
-                                        mod.remove_item_from_wishlist(item.__master_item)
-                                    end
-
                                     if is_new then
                                         remove_new_marker_callback = self._parent and callback(self._parent, "remove_new_item_mark")
                                     end
 
-                                    unlocked_items[#unlocked_items + 1] = item.__master_item.name
-                                    layout[#layout + 1] = {
-                                        widget_type = "gear_item", sort_data = item, item = item, locked = false, slot = selected_item_slot,
-                                        new_item_marker = is_new, remove_new_marker_callback = remove_new_marker_callback, profile = profile
-                                    }
+                                    if valid then
+                                        unlocked_items[#unlocked_items + 1] = item.__master_item.name
+                                        layout[#layout + 1] = {
+                                            widget_type = WIDGET_TYPE_BY_SLOT[selected_slot_name], sort_data = item, item = item, locked = false,
+                                            slot = selected_item_slot, new_item_marker = is_new,
+                                            remove_new_marker_callback = remove_new_marker_callback, profile = profile
+                                        }
+                                    end
                                 end
                             end
                         end
                     end
-                end
 
-                -- Add divider
-                layout[#layout + 1] = {widget_type = "divider"}
+                    -- Add divider
+                    layout[#layout + 1] = {widget_type = "divider"}
 
-                -- Add locked cosmetics
-                for i = 1, #current_cosmetics do
-                    local item = _item_plus_overrides(current_cosmetics[i], current_cosmetics[i].__gear, current_cosmetics[i].__gear_id, false)
-                    if item then
+                    -- add locked items
+                    for i = 1, #current_cosmetics do
+                        local item = _item_plus_overrides(current_cosmetics[i], current_cosmetics[i].__gear, current_cosmetics[i].__gear_id, false)
+
                         local continue = true
 
-                        local gear_id = item.gear_id
-                        local is_new = self._context and self._context.new_items_gear_ids and self._context.new_items_gear_ids[gear_id]
-                        local remove_new_marker_callback
+                        if item then
 
-                        if is_new then
-                            remove_new_marker_callback = self._parent and callback(self._parent, "remove_new_item_mark")
-                        end
+                            local forcurrentbreed = false
 
-                        -- filter out unlocked items
-                        for x, unlocked_item_name in pairs(unlocked_items) do
-                            if item.name == unlocked_item_name then
-                                continue = false
-                            end
-                        end
+                            if item.breeds then
+                                for x, breed in pairs(item.breeds) do
+                                    if breed == currentbreed then
+                                        if item.archetypes then
+                                            for y, archetypename in pairs(item.archetypes) do
+                                                if archetypename == currentarchetype.name then
+                                                    forcurrentbreed = true
+                                                end
+                                            end
+                                        else
+                                            forcurrentbreed = true
+                                        end
+                                    end
+                                end
+                                local valid = true
 
-                        -- Filter out unknown sources
-                        if not mod:get("show_unobtainable") then
-                            if item.source == nil or item.source < 1 then
-                                continue = false
-                            end
-                        end
+                                if forcurrentbreed then
+                                    for x, unlocked_item_name in pairs(unlocked_items) do
+                                        if item.name == unlocked_item_name then
+                                            continue = false
+                                        end
+                                    end
 
-                        -- Filter out "NONE" commodore filter
-                        if self._commodores_toggle == "loc_VPCC_show_no_commodores" and item.source == 3 then
-                            continue = false
-                        end
+                                    -- Filter out unknown sources
+                                    if not mod:get("show_unobtainable") then
+                                        if item.source == nil or item.source < 1 then
+                                            continue = false
+                                        end
+                                    end
 
-                        -- Get purchase offer if item is in store.
-                        local purchase_offer = nil
-                        purchase_offer = mod.get_item_in_current_commodores(self, gear_id, item.name)
-                        -- if the source isn't "commodores vestures" yet the item is available in store - set the correct source...
-                        if purchase_offer and item.source ~= 3 then
-                            item.source = 3
-                        end
+                                    if continue == true then
 
-                        if self._commodores_toggle == "loc_VPCC_show_available_commodores" and item.source == 3 and not purchase_offer then
-                            continue = false
-                        end
+                                        local gear_id = item.gear_id
+                                        local is_new = self._context and self._context.new_items_gear_ids and
+                                                           self._context.new_items_gear_ids[gear_id]
+                                        local remove_new_marker_callback
+                                        if is_new then
+                                            remove_new_marker_callback = self._parent and callback(self._parent, "remove_new_item_mark")
+                                        end
 
-                        -- find if item is on wishlist
-                        local item_on_wishlist = false
-                        local widgets_by_name = self._widgets_by_name
-
-                        local previewed_item_name = item.__master_item.dev_name
-                        if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
-                            for i, item1 in pairs(wishlisted_items) do
-                                if item1 and item1.dev_name == previewed_item_name then
-                                    item_on_wishlist = true
+                                        layout[#layout + 1] = {
+                                            widget_type = WIDGET_TYPE_BY_SLOT[selected_slot_name], sort_data = item, item = item,
+                                            slot = selected_item_slot, new_item_marker = is_new,
+                                            remove_new_marker_callback = remove_new_marker_callback, locked = true, profile = profile,
+                                            purchase_offer = nil, item_on_wishlist = false
+                                        }
+                                    end
                                 end
                             end
                         end
-
-                        -- remove purchased items from wishlist
-                        if item_on_wishlist and item.__locked and item.__locked == false then
-                            mod.remove_item_from_wishlist(item.__master_item)
-                        end
-
-                        if continue then
-                            layout[#layout + 1] = {
-                                widget_type = "gear_item", -- item_icon
-                                sort_data = item, item = item, slot = selected_item_slot, new_item_marker = is_new,
-                                remove_new_marker_callback = remove_new_marker_callback, locked = true, profile = profile,
-                                purchase_offer = purchase_offer, item_on_wishlist = item_on_wishlist
-                            }
-                        end
                     end
+
+                    self._offer_items_layout = table.clone_instance(layout)
+                    self:_present_layout_by_slot_filter(nil, nil, selected_item_slot.display_name)
                 end
 
-                self._offer_items_layout = table.clone_instance(layout)
-
-                self:_present_layout_by_slot_filter(nil, nil, selected_item_slot.display_name)
             end
-        end
-    )
+
+        )
+    end
 end
 
 -- Get all cosmetics items available, from the MasterItems cache.
 mod.get_cosmetic_items = function(self, selectedslot)
     local item_definitions = MasterItems.get_cached()
     local cosmetic_items = {}
-
     local player = self._preview_player
     local profile = player:profile()
     local currentarchetype = profile.archetype
@@ -1071,31 +1315,32 @@ mod.get_cosmetic_items = function(self, selectedslot)
         repeat
             local slots = item.slots
             local slot = slots and slots[1]
-            if slot == "slot_gear_head" or slot == "slot_gear_lowerbody" or slot == "slot_gear_upperbody" or slot == "slot_gear_extra_cosmetic" then
+
+            if item.__gear_id then
                 local gearid = item.__gear_id
                 if gearid then
                     gearid[#gearid + 1] = gearid
                 end
+            end
 
-                local forcurrentbreed = false
-                if slot and slot == selectedslot and item.breeds then
-                    for x, breed in pairs(item.breeds) do
-                        if breed == currentbreed then
-                            if item.archetypes then
-                                for y, archetypename in pairs(item.archetypes) do
-                                    if archetypename == currentarchetype.name then
-                                        forcurrentbreed = true
-                                    end
+            local forcurrentbreed = false
+            if slot and slot == selectedslot and item.breeds then
+                for x, breed in pairs(item.breeds) do
+                    if breed == currentbreed then
+                        if item.archetypes then
+                            for y, archetypename in pairs(item.archetypes) do
+                                if archetypename == currentarchetype.name then
+                                    forcurrentbreed = true
                                 end
-                            else
-                                forcurrentbreed = true
                             end
+                        else
+                            forcurrentbreed = true
                         end
                     end
-                    if forcurrentbreed then
-                        if item.display_name ~= "" and item.display_name ~= nil and item.display_name ~= " " then
-                            cosmetic_items[#cosmetic_items + 1] = item
-                        end
+                end
+                if forcurrentbreed then
+                    if item.display_name ~= "" and item.display_name ~= nil and item.display_name ~= " " then
+                        cosmetic_items[#cosmetic_items + 1] = item
                     end
                 end
             end
