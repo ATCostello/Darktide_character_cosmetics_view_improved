@@ -1,9 +1,9 @@
 local mod = get_mod("character_cosmetics_view_improved")
 
 return {
-	name = "Character Cosmetics View Improved",
+	name = mod:localize("mod_name"),
 	description = mod:localize("mod_description"),
-	is_togglable = true,
+	is_togglable = false,
 	options = {
 		widgets = {
 			{
@@ -15,6 +15,11 @@ return {
 					{ text = "OnlyAvailable", value = "loc_VPCC_show_available_commodores" },
 					{ text = "None",        value = "loc_VPCC_show_no_commodores" },
 				}
+			},
+			{
+				setting_id = "show_unobtainable",
+				type = "checkbox",
+				default_value = false
 			}
 		}
 	}
