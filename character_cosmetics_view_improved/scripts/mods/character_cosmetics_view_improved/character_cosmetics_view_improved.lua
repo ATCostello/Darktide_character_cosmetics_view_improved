@@ -12,14 +12,10 @@ local InventoryCosmeticsView = require("scripts/ui/views/inventory_cosmetics_vie
 local InventoryBackgroundView = require("scripts/ui/views/inventory_background_view/inventory_background_view")
 local ProfileUtils = require("scripts/utilities/profile_utils")
 local ViewElementProfilePresets = require("scripts/ui/view_elements/view_element_profile_presets/view_element_profile_presets")
-local ViewElementCosmeticPresets = mod:io_dofile(
-                                       "character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/view_element_cosmetic_presets"
-                                   )
+local ViewElementCosmeticPresets = mod:io_dofile("character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/view_element_cosmetic_presets")
 
 local StoreView = require("scripts/ui/views/store_view/store_view")
-local CCVIData = mod:io_dofile(
-                     "character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/character_cosmetics_view_improved_data"
-                 )
+local CCVIData = mod:io_dofile("character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/character_cosmetics_view_improved_data")
 local ItemUtils = require("scripts/utilities/items")
 
 local previewed_items = {}
@@ -29,6 +25,7 @@ current_commodores_offers = {}
 mod.on_all_mods_loaded = function()
     mod.get_wishlist()
 end
+
 
 InventoryBackgroundView.event_on_profile_preset_changed = function(self, profile_preset, on_preset_deleted)
     local active_layout = self._active_talent_loadout
@@ -47,8 +44,7 @@ InventoryBackgroundView.event_on_profile_preset_changed = function(self, profile
 
             if item then
                 if mod:get("unhook_cosmetics_from_presets") == true then
-                    if slot_id == "slot_primary" or slot_id == "slot_secondary" or slot_id == "slot_attachment_1" or slot_id == "slot_attachment_2" or
-                        slot_id == "slot_attachment_3" then
+                    if slot_id == "slot_primary" or slot_id == "slot_secondary" or slot_id == "slot_attachment_1" or slot_id == "slot_attachment_2" or slot_id == "slot_attachment_3" then
                         self:_equip_slot_item(slot_id, item)
                     end
                 else
@@ -77,9 +73,14 @@ InventoryBackgroundView.event_on_profile_preset_changed = function(self, profile
     self:_update_presentation_wield_item()
 
     if not table.is_empty(self._invalid_slots) or not table.is_empty(self._duplicated_slots) or not table.is_empty(self._modified_slots) then
-        Managers.event:trigger("event_add_notification_message", "alert", {text = Localize("loc_inventory_error_loadout_items")})
+        Managers.event:trigger(
+            "event_add_notification_message", "alert", {
+                text = Localize("loc_inventory_error_loadout_items")
+            }
+        )
     end
 end
+
 
 InventoryBackgroundView.event_on_profile_cosmetic_preset_changed = function(self, profile_preset, on_preset_deleted)
     if profile_preset and profile_preset.loadout then
@@ -87,8 +88,7 @@ InventoryBackgroundView.event_on_profile_cosmetic_preset_changed = function(self
             local item = self:_get_inventory_item_by_id(gear_id)
 
             if item then
-                if slot_id ~= "slot_primary" and slot_id ~= "slot_secondary" and slot_id ~= "slot_attachment_1" and slot_id ~= "slot_attachment_2" and
-                    slot_id ~= "slot_attachment_3" then
+                if slot_id ~= "slot_primary" and slot_id ~= "slot_secondary" and slot_id ~= "slot_attachment_1" and slot_id ~= "slot_attachment_2" and slot_id ~= "slot_attachment_3" then
 
                     local presentation_profile = self._presentation_profile
                     local presentation_loadout = presentation_profile.loadout
@@ -106,6 +106,7 @@ InventoryBackgroundView.event_on_profile_cosmetic_preset_changed = function(self
     end
 end
 
+
 mod:hook_safe(
     CLASS.InventoryBackgroundView, "_setup_top_panel", function(self)
 
@@ -118,6 +119,7 @@ mod:hook_safe(
             end
         end
 
+
         self._views_settings[2].leave = function()
             if mod:get("unhook_cosmetics_from_presets") == true then
                 self:_setup_profile_presets()
@@ -125,8 +127,13 @@ mod:hook_safe(
             end
         end
 
+
     end
+
+
 )
+
+local DataServiceBackendCache = require("scripts/managers/data_service/data_service_backend_cache")
 
 mod:hook_safe(
     CLASS.InventoryCosmeticsView, "_start_show_layout", function(self, element)
@@ -136,12 +143,16 @@ mod:hook_safe(
         mod.focus_on_item(self, previewed_items)
         self._commodores_toggle = mod:get("show_commodores") or "loc_VPCC_show_all_commodores"
     end
+
+
 )
 
 mod:hook_safe(
     CLASS.InventoryCosmeticsView, "on_exit", function(self, element)
         mod.set_wishlist()
     end
+
+
 )
 
 mod:hook_safe(
@@ -150,6 +161,8 @@ mod:hook_safe(
         Selected_purchase_offer = {}
         current_commodores_offers = {}
     end
+
+
 )
 
 mod.get_wishlist = function()
@@ -165,6 +178,7 @@ mod.get_wishlist = function()
     end
 end
 
+
 mod.set_wishlist = function()
     local CCVI = get_mod("character_cosmetics_view_improved")
     if CCVI then
@@ -174,6 +188,7 @@ mod.set_wishlist = function()
         mod:set("wishlisted_items", wishlisted_items)
     end
 end
+
 
 mod.focus_on_item = function(self, items)
     if not items then
@@ -208,6 +223,7 @@ mod.focus_on_item = function(self, items)
     end
 end
 
+
 InventoryCosmeticsView.cb_on_preview_pressed = function(self)
     local previewed_item = self._previewed_item
     local presentation_profile = self._presentation_profile
@@ -220,8 +236,7 @@ InventoryCosmeticsView.cb_on_preview_pressed = function(self)
 
         if item_type == ITEM_TYPES.GEAR_LOWERBODY or item_type == ITEM_TYPES.GEAR_UPPERBODY then
             self:_play_sound(UISoundEvents.apparel_equip)
-        elseif item_type == ITEM_TYPES.GEAR_HEAD or item_type == ITEM_TYPES.EMOTE or item_type == ITEM_TYPES.END_OF_ROUND or item_type ==
-            ITEM_TYPES.GEAR_EXTRA_COSMETIC then
+        elseif item_type == ITEM_TYPES.GEAR_HEAD or item_type == ITEM_TYPES.EMOTE or item_type == ITEM_TYPES.END_OF_ROUND or item_type == ITEM_TYPES.GEAR_EXTRA_COSMETIC then
             self:_play_sound(UISoundEvents.apparel_equip_small)
         elseif item_type == ITEM_TYPES.PORTRAIT_FRAME or item_type == ITEM_TYPES.CHARACTER_INSIGNIA then
             self:_play_sound(UISoundEvents.apparel_equip_frame)
@@ -238,6 +253,7 @@ InventoryCosmeticsView.cb_on_preview_pressed = function(self)
         widgets_by_name.preview_button.content.hotspot.disabled = true
     end
 end
+
 
 InventoryCosmeticsView.cb_on_wishlist_pressed = function(self)
 
@@ -294,6 +310,7 @@ InventoryCosmeticsView.cb_on_wishlist_pressed = function(self)
     end
 end
 
+
 mod:hook_safe(
     CLASS.InventoryCosmeticsView, "_update_equip_button_status", function(self)
         -- If the equip button is enabled, do not show the preview button.
@@ -306,6 +323,8 @@ mod:hook_safe(
         local widgets_by_name = self._widgets_by_name
         widgets_by_name.preview_button.content.visible = not self._preview_button_disabled
     end
+
+
 )
 
 mod:hook_safe(
@@ -317,27 +336,29 @@ mod:hook_safe(
         widgets_by_name.wishlist_button.content.hotspot.pressed_callback = callback(self, "cb_on_wishlist_pressed")
 
     end
+
+
 )
 
 mod:hook_safe(
     CLASS.InventoryCosmeticsView, "_set_preview_widgets_visibility", function(self, visible, allow_equip_button)
         local widgets_by_name = self._widgets_by_name
 
-        if self._previewed_item and self._previewed_item.__locked and self._previewed_item.__locked == true and
-            self._previewed_item.__master_item.source == 3 then
+        if self._previewed_item and self._previewed_item.__locked and self._previewed_item.__locked == true and self._previewed_item.__master_item.source == 3 then
             widgets_by_name.wishlist_button.content.visible = true
         else
             widgets_by_name.wishlist_button.content.visible = false
         end
 
-        if self._selected_slot.name == "slot_gear_head" or self._selected_slot.name == "slot_gear_upperbody" or self._selected_slot.name ==
-            "slot_gear_lowerbody" or self._selected_slot.name == "slot_gear_extra_cosmetic" then
+        if self._selected_slot.name == "slot_gear_head" or self._selected_slot.name == "slot_gear_upperbody" or self._selected_slot.name == "slot_gear_lowerbody" or self._selected_slot.name == "slot_gear_extra_cosmetic" then
             widgets_by_name.preview_button.content.visible = allow_equip_button and false or not visible
         else
             widgets_by_name.preview_button.content.visible = false
         end
 
     end
+
+
 )
 
 mod.update_wishlist_icons = function(self)
@@ -371,6 +392,7 @@ mod.update_wishlist_icons = function(self)
     end
 end
 
+
 mod.wishlist_store_check = function(self, archetype)
     if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
 
@@ -378,6 +400,7 @@ mod.wishlist_store_check = function(self, archetype)
         return _store_promise
     end
 end
+
 
 mod.display_wishlist_notification = function(self)
 
@@ -426,23 +449,36 @@ mod.display_wishlist_notification = function(self)
                                                     Managers.event:trigger("event_add_notification_message", "default", text)
                                                 end
                                             end
+
+
                                         )
                                     end
+
+
                                 )
                             end
+
+
                         )
                     end
+
+
                 )
             end
+
+
         )
     end
 
 end
 
+
 mod:hook_safe(
-    CLASS.StateMainMenu, "event_request_select_new_profile", function(self, profile)
+    CLASS.StateMainMenu, "on_enter", function(self)
         mod.display_wishlist_notification(self)
     end
+
+
 )
 
 mod.remove_item_from_wishlist = function(item)
@@ -514,6 +550,8 @@ mod:hook_safe(
         widgets_by_name.preview_button.content.hotspot.disabled = is_item_previewed
 
     end
+
+
 )
 
 local add_definitions = function(definitions)
@@ -523,59 +561,116 @@ local add_definitions = function(definitions)
 
     definitions.scenegraph_definition = definitions.scenegraph_definition or {}
     definitions.widget_definitions = definitions.widget_definitions or {}
-    local equip_button_size = {374, 76}
-    local store_button_size = {374, 76}
+    local equip_button_size = {
+        374,
+        76
+    }
+    local store_button_size = {
+        374,
+        76
+    }
 
     definitions.scenegraph_definition.preview_button = {
-        horizontal_alignment = "right", parent = "info_box", vertical_alignment = "bottom", size = equip_button_size, position = {0, -8, 1}
+        horizontal_alignment = "right",
+        parent = "info_box",
+        vertical_alignment = "bottom",
+        size = equip_button_size,
+        position = {
+            0,
+            -8,
+            1
+        }
     }
 
     definitions.widget_definitions.preview_button = UIWidget.create_definition(
-                                                        ButtonPassTemplates.default_button, "preview_button", {
-            gamepad_action = "confirm_pressed", visible = false, original_text = Utf8.upper(Localize("loc_VPCC_preview")), hotspot = {}
+        ButtonPassTemplates.default_button, "preview_button", {
+            gamepad_action = "confirm_pressed",
+            visible = false,
+            original_text = Utf8.upper(Localize("loc_VPCC_preview")),
+            hotspot = {}
         }
-                                                    )
-    local wishlist_button_size = {48, 48}
+    )
+    local wishlist_button_size = {
+        48,
+        48
+    }
 
     definitions.scenegraph_definition.wishlist_button = {
-        horizontal_alignment = "right", parent = "info_box", vertical_alignment = "bottom", size = wishlist_button_size, position = {50, -20, 2}
+        horizontal_alignment = "right",
+        parent = "info_box",
+        vertical_alignment = "bottom",
+        size = wishlist_button_size,
+        position = {
+            50,
+            -20,
+            2
+        }
     }
 
     definitions.widget_definitions.wishlist_button = UIWidget.create_definition(
-                                                         ButtonPassTemplates.terminal_button, "wishlist_button", {
-            gamepad_action = "confirm_pressed", visible = false, original_text = Utf8.upper(Localize("loc_VPCC_wishlist")), hotspot = {}
+        ButtonPassTemplates.terminal_button, "wishlist_button", {
+            gamepad_action = "confirm_pressed",
+            visible = false,
+            original_text = Utf8.upper(Localize("loc_VPCC_wishlist")),
+            hotspot = {}
         }
-                                                     )
+    )
 
     definitions.scenegraph_definition.store_button = {
-        horizontal_alignment = "right", parent = "info_box", vertical_alignment = "bottom", size = store_button_size, position = {0, 65, 1}
+        horizontal_alignment = "right",
+        parent = "info_box",
+        vertical_alignment = "bottom",
+        size = store_button_size,
+        position = {
+            0,
+            65,
+            1
+        }
     }
 
     definitions.widget_definitions.store_button = UIWidget.create_definition(
-                                                      ButtonPassTemplates.default_button, "store_button", {
-            gamepad_action = "confirm_pressed", visible = false, original_text = Utf8.upper(Localize("loc_VPCC_store")), hotspot = {}
+        ButtonPassTemplates.default_button, "store_button", {
+            gamepad_action = "confirm_pressed",
+            visible = false,
+            original_text = Utf8.upper(Localize("loc_VPCC_store")),
+            hotspot = {}
         }
-                                                  )
+    )
 end
+
 
 mod:hook_require(
     "scripts/ui/views/inventory_cosmetics_view/inventory_cosmetics_view_definitions", function(definitions)
         add_definitions(definitions)
     end
+
+
 )
 
 local function _item_plus_overrides(item, gear, gear_id, is_preview_item)
     local gearid = math.uuid() or gear_id
 
-    local masterDataInstance = {id = item.name}
+    local masterDataInstance = {
+        id = item.name
+    }
 
-    local slots = {item.slots}
+    local slots = {
+        item.slots
+    }
 
-    local __gear = {uuid = gearid, masterDataInstance = masterDataInstance, slots = slots}
+    local __gear = {
+        uuid = gearid,
+        masterDataInstance = masterDataInstance,
+        slots = slots
+    }
 
     local item_instance = {
-        __master_item = item, __gear = __gear, __gear_id = gearid, __original_gear_id = is_preview_item and gear_id,
-        __is_preview_item = is_preview_item and true or false, __locked = true
+        __master_item = item,
+        __gear = __gear,
+        __gear_id = gearid,
+        __original_gear_id = is_preview_item and gear_id,
+        __is_preview_item = is_preview_item and true or false,
+        __locked = true
     }
 
     setmetatable(
@@ -616,16 +711,20 @@ local function _item_plus_overrides(item, gear, gear_id, is_preview_item)
                 end
 
                 return field_value
-            end, __newindex = function(t, field_name, value)
+            end
+,
+            __newindex = function(t, field_name, value)
                 rawset(t, field_name, value)
 
-            end, __tostring = function(t)
+            end
+,
+            __tostring = function(t)
                 local master_item = rawget(item_instance, "__master_item")
 
-                return string.format(
-                           "master_item: [%s] gear_id: [%s]", tostring(master_item and master_item.name), tostring(rawget(item_instance, "__gear_id"))
-                       )
+                return string.format("master_item: [%s] gear_id: [%s]", tostring(master_item and master_item.name), tostring(rawget(item_instance, "__gear_id")))
             end
+
+
         }
     )
 
@@ -639,6 +738,7 @@ local function _item_plus_overrides(item, gear, gear_id, is_preview_item)
 
     return item_instance
 end
+
 
 local add_wishlist_icon = function(ItemPassTemplates)
     if not ItemPassTemplates then
@@ -674,6 +774,7 @@ local add_wishlist_icon = function(ItemPassTemplates)
         ColorUtilities.color_lerp(text_color, color, progress, text_color)
     end
 
+
     local wishlist_icon_text_style = table.clone(UIFontSettings.header_3)
 
     wishlist_icon_text_style.text_color = Color.terminal_corner_selected(255, true)
@@ -684,27 +785,35 @@ local add_wishlist_icon = function(ItemPassTemplates)
     wishlist_icon_text_style.drop_shadow = false
     wishlist_icon_text_style.text_horizontal_alignment = "right"
     wishlist_icon_text_style.text_vertical_alignment = "top"
-    wishlist_icon_text_style.offset = {-10, 5, 7}
+    wishlist_icon_text_style.offset = {
+        -10,
+        5,
+        7
+    }
 
     ItemPassTemplates.gear_item[#ItemPassTemplates.gear_item + 1] = {
-        pass_type = "text", value = Utf8.upper(Localize("loc_VPCC_wishlist")), style = wishlist_icon_text_style,
+        pass_type = "text",
+        value = Utf8.upper(Localize("loc_VPCC_wishlist")),
+        style = wishlist_icon_text_style,
         visibility_function = function(content, style)
             if content.entry and content.entry.item_on_wishlist then
                 return true
             else
                 return false
             end
-        end, change_function = _symbol_text_change_function
+        end
+,
+        change_function = _symbol_text_change_function
     }
 end
 
+
+local ColorUtilities = require("scripts/utilities/ui/colors")
+local UIFontSettings = require("scripts/managers/ui/ui_font_settings")
 local add_store_item_icon = function(ItemPassTemplates)
     if not ItemPassTemplates then
         return
     end
-
-    local ColorUtilities = require("scripts/utilities/ui/colors")
-    local UIFontSettings = require("scripts/managers/ui/ui_font_settings")
 
     ItemPassTemplates.gear_item = ItemPassTemplates.gear_item or {}
 
@@ -732,6 +841,7 @@ local add_store_item_icon = function(ItemPassTemplates)
         ColorUtilities.color_lerp(text_color, color, progress, text_color)
     end
 
+
     local item_store_icon_text_style = table.clone(UIFontSettings.header_3)
 
     item_store_icon_text_style.text_color = Color.terminal_corner_selected(255, true)
@@ -742,25 +852,122 @@ local add_store_item_icon = function(ItemPassTemplates)
     item_store_icon_text_style.drop_shadow = false
     item_store_icon_text_style.text_horizontal_alignment = "left"
     item_store_icon_text_style.text_vertical_alignment = "bottom"
-    item_store_icon_text_style.offset = {10, -5, 7}
+    item_store_icon_text_style.offset = {
+        10,
+        -5,
+        7
+    }
 
     ItemPassTemplates.gear_item[#ItemPassTemplates.gear_item + 1] = {
-        pass_type = "text", value = Utf8.upper(Localize("loc_VPCC_in_store")), style = item_store_icon_text_style,
+        pass_type = "text",
+        value = Utf8.upper(Localize("loc_VPCC_in_store")),
+        style = item_store_icon_text_style,
         visibility_function = function(content, style)
-            if content.entry and content.entry.purchase_offer then
+            if content.entry and content.entry.purchase_offer and mod:get("display_commodores_price_in_inventory") == false then
                 return true
             else
                 return false
             end
-        end, change_function = _symbol_text_change_function
+        end
+,
+        change_function = _symbol_text_change_function
     }
 end
 
+
+local adjust_display_store_price = function(ItemPassTemplates)
+    if not ItemPassTemplates then
+        return
+    end
+
+    if ItemPassTemplates.gear_item then
+        local item_price_style = table.clone(UIFontSettings.body)
+
+        item_price_style.text_horizontal_alignment = "left"
+        item_price_style.text_vertical_alignment = "bottom"
+        item_price_style.horizontal_alignment = "left"
+        item_price_style.vertical_alignment = "center"
+        item_price_style.offset = {
+            35,
+            -8,
+            12
+        }
+        item_price_style.font_size = 20
+        item_price_style.text_color = Color.white(255, true)
+        item_price_style.default_color = Color.white(255, true)
+        item_price_style.hover_color = Color.white(255, true)
+        local gear_item_price_style = table.clone(item_price_style)
+
+        gear_item_price_style.offset = {
+            35,
+            -3,
+            12
+        }
+
+        local price_text = {
+            pass_type = "text",
+            style_id = "price_text",
+            value = "n/a",
+            value_id = "price_text",
+            style = gear_item_price_style,
+            visibility_function = function(content, style)
+                return content.has_price_tag and not content.sold and mod:get("display_commodores_price_in_inventory") == true
+            end
+
+        }
+
+        local wallet_icon = {
+            pass_type = "texture",
+            style_id = "wallet_icon",
+            value = "content/ui/materials/base/ui_default_base",
+            value_id = "wallet_icon",
+            style = {
+                horizontal_alignment = "left",
+                vertical_alignment = "bottom",
+                size = {
+                    28,
+                    20
+                },
+                offset = {
+                    5,
+                    -5,
+                    12
+                },
+                color = {
+                    255,
+                    255,
+                    255,
+                    255
+                }
+            },
+            visibility_function = function(content, style)
+                return content.has_price_tag and not content.sold and mod:get("display_commodores_price_in_inventory") == true
+            end
+
+
+        }
+
+        for _, template in pairs(ItemPassTemplates.gear_item) do
+            if template.style_id and template.style_id == "price_text" then
+                ItemPassTemplates.gear_item[_] = price_text
+            end
+
+            if template.style_id and template.style_id == "wallet_icon" then
+                ItemPassTemplates.gear_item[_] = wallet_icon
+            end
+        end
+    end
+end
+
+
 mod:hook_require(
     "scripts/ui/pass_templates/item_pass_templates", function(ItemPassTemplates)
-        add_store_item_icon(ItemPassTemplates)
         add_wishlist_icon(ItemPassTemplates)
+        add_store_item_icon(ItemPassTemplates)
+        adjust_display_store_price(ItemPassTemplates)
     end
+
+
 )
 
 Category_index = 1
@@ -791,28 +998,45 @@ InventoryCosmeticsView.cb_on_store_pressed = function(self)
         local ui_manager = Managers.ui
 
         if ui_manager then
-            local context = {hub_interaction = true}
+            local context = {
+                hub_interaction = true
+            }
 
             ui_manager:open_view("store_view", nil, nil, nil, nil, context)
         end
     end
 end
 
+
 local STORE_LAYOUT = {
     {
-        display_name = "loc_premium_store_category_title_featured", storefront = "premium_store_featured", telemetry_name = "featured",
+        display_name = "loc_premium_store_category_title_featured",
+        storefront = "premium_store_featured",
+        telemetry_name = "featured",
         template = ButtonPassTemplates.terminal_tab_menu_with_divider_button
-    }, {
-        display_name = "loc_premium_store_category_skins_title_veteran", storefront = "premium_store_skins_veteran", telemetry_name = "veteran",
+    },
+    {
+        display_name = "loc_premium_store_category_skins_title_veteran",
+        storefront = "premium_store_skins_veteran",
+        telemetry_name = "veteran",
         template = ButtonPassTemplates.terminal_tab_menu_with_divider_button
-    }, {
-        display_name = "loc_premium_store_category_skins_title_zealot", storefront = "premium_store_skins_zealot", telemetry_name = "zealot",
+    },
+    {
+        display_name = "loc_premium_store_category_skins_title_zealot",
+        storefront = "premium_store_skins_zealot",
+        telemetry_name = "zealot",
         template = ButtonPassTemplates.terminal_tab_menu_with_divider_button
-    }, {
-        display_name = "loc_premium_store_category_skins_title_psyker", storefront = "premium_store_skins_psyker", telemetry_name = "psyker",
+    },
+    {
+        display_name = "loc_premium_store_category_skins_title_psyker",
+        storefront = "premium_store_skins_psyker",
+        telemetry_name = "psyker",
         template = ButtonPassTemplates.terminal_tab_menu_with_divider_button
-    }, {
-        display_name = "loc_premium_store_category_skins_title_ogryn", storefront = "premium_store_skins_ogryn", telemetry_name = "ogryn",
+    },
+    {
+        display_name = "loc_premium_store_category_skins_title_ogryn",
+        storefront = "premium_store_skins_ogryn",
+        telemetry_name = "ogryn",
         template = ButtonPassTemplates.terminal_tab_menu_button
     }
 }
@@ -868,6 +1092,7 @@ StoreView._on_page_index_selected = function(self, page_index)
     end
 end
 
+
 StoreView.on_exit = function(self)
     self:_clear_telemetry_name()
 
@@ -912,6 +1137,7 @@ StoreView.on_exit = function(self)
     Selected_purchase_offer = {}
 end
 
+
 StoreView._initialize_opening_page = function(self)
     local store_category_index = 1
 
@@ -920,10 +1146,14 @@ StoreView._initialize_opening_page = function(self)
         store_category_index = Category_index
     end
 
-    local path = {category_index = store_category_index, page_index = 1}
+    local path = {
+        category_index = store_category_index,
+        page_index = 1
+    }
 
     self:_open_navigation_path(path)
 end
+
 
 mod.grab_current_commodores_items = function(self, archetype)
     local player = Managers.player:local_player(1)
@@ -950,14 +1180,17 @@ mod.grab_current_commodores_items = function(self, archetype)
     end
 
     return _store_promise:next(
-               function(data)
+        function(data)
             for i = 1, #data.offers do
                 data.offers[i]["layout_config"] = data.layout_config
                 table.insert(current_commodores_offers, data.offers[i])
             end
         end
-           )
+
+
+    )
 end
+
 
 mod.get_item_in_current_commodores = function(self, gearid, item_name)
     if not current_commodores_offers then
@@ -983,11 +1216,21 @@ mod.get_item_in_current_commodores = function(self, gearid, item_name)
     end
 end
 
+
 local WIDGET_TYPE_BY_SLOT = {
-    slot_animation_emote_1 = "ui_item", slot_animation_emote_2 = "ui_item", slot_animation_emote_3 = "ui_item", slot_animation_emote_4 = "ui_item",
-    slot_animation_emote_5 = "ui_item", slot_animation_end_of_round = "gear_item", slot_character_title = "character_title_item",
-    slot_gear_extra_cosmetic = "gear_item", slot_gear_head = "gear_item", slot_gear_lowerbody = "gear_item", slot_gear_upperbody = "gear_item",
-    slot_insignia = "ui_item", slot_portrait_frame = "ui_item"
+    slot_animation_emote_1 = "ui_item",
+    slot_animation_emote_2 = "ui_item",
+    slot_animation_emote_3 = "ui_item",
+    slot_animation_emote_4 = "ui_item",
+    slot_animation_emote_5 = "ui_item",
+    slot_animation_end_of_round = "gear_item",
+    slot_character_title = "character_title_item",
+    slot_gear_extra_cosmetic = "gear_item",
+    slot_gear_head = "gear_item",
+    slot_gear_lowerbody = "gear_item",
+    slot_gear_upperbody = "gear_item",
+    slot_insignia = "ui_item",
+    slot_portrait_frame = "ui_item"
 }
 
 -- Fill out the UI cosmetics grid with all unlocked, then locked cosmetics.
@@ -1002,8 +1245,7 @@ mod.list_premium_cosmetics = function(self)
 
                 local current_cosmetics = mod.get_cosmetic_items(self, selected_item_slot.name)
 
-                if selected_item_slot.name == "slot_gear_head" or selected_item_slot.name == "slot_gear_lowerbody" or selected_item_slot.name ==
-                    "slot_gear_upperbody" or selected_item_slot.name == "slot_gear_extra_cosmetic" then
+                if selected_item_slot.name == "slot_gear_head" or selected_item_slot.name == "slot_gear_lowerbody" or selected_item_slot.name == "slot_gear_upperbody" or selected_item_slot.name == "slot_gear_extra_cosmetic" then
 
                     local layout = {}
 
@@ -1041,8 +1283,7 @@ mod.list_premium_cosmetics = function(self)
                                     -- Remove incorrect background prisoner garbs
                                     if string.find(item.__master_item.display_name, "prisoner") then
 
-                                        if item.__master_item.crimes and #item.__master_item.crimes > 0 and profile.lore and profile.lore.backstory and
-                                            profile.lore.backstory.crime then
+                                        if item.__master_item.crimes and #item.__master_item.crimes > 0 and profile.lore and profile.lore.backstory and profile.lore.backstory.crime then
                                             valid = false
                                             for i, crime in pairs(item.__master_item.crimes) do
                                                 if profile.lore.backstory.crime == crime then
@@ -1055,8 +1296,7 @@ mod.list_premium_cosmetics = function(self)
                                     if valid then
 
                                         local gear_id = item.gear_id
-                                        local is_new = self._context and self._context.new_items_gear_ids and
-                                                           self._context.new_items_gear_ids[gear_id]
+                                        local is_new = self._context and self._context.new_items_gear_ids and self._context.new_items_gear_ids[gear_id]
                                         local remove_new_marker_callback
 
                                         -- find if item is on wishlist
@@ -1081,8 +1321,14 @@ mod.list_premium_cosmetics = function(self)
 
                                         unlocked_items[#unlocked_items + 1] = item.__master_item.name
                                         layout[#layout + 1] = {
-                                            widget_type = "gear_item", sort_data = item, item = item, locked = false, slot = selected_item_slot,
-                                            new_item_marker = is_new, remove_new_marker_callback = remove_new_marker_callback, profile = profile
+                                            widget_type = "gear_item",
+                                            sort_data = item,
+                                            item = item,
+                                            locked = false,
+                                            slot = selected_item_slot,
+                                            new_item_marker = is_new,
+                                            remove_new_marker_callback = remove_new_marker_callback,
+                                            profile = profile
                                         }
                                     end
                                 end
@@ -1091,7 +1337,9 @@ mod.list_premium_cosmetics = function(self)
                     end
 
                     -- Add divider
-                    layout[#layout + 1] = {widget_type = "divider"}
+                    layout[#layout + 1] = {
+                        widget_type = "divider"
+                    }
 
                     -- Add locked cosmetics
                     for i = 1, #current_cosmetics do
@@ -1134,6 +1382,26 @@ mod.list_premium_cosmetics = function(self)
                                 item.source = 3
                             end
 
+                            if purchase_offer then
+
+                                local skin_name = item.name
+                                local selected_item_cost = 0
+                                local bundle = purchase_offer.bundleInfo or nil
+
+                                if bundle then
+                                    for _, bundleitem in pairs(bundle) do
+                                        if bundleitem.description.id == skin_name then
+                                            selected_item_cost = bundleitem.price.amount.amount
+                                        end
+                                    end
+                                else
+                                    selected_item_cost = purchase_offer.price.amount.amount or 0
+                                end
+
+                                purchase_offer.price.amount.amount = selected_item_cost
+                                item.offer = purchase_offer
+                            end
+
                             if self._commodores_toggle == "loc_VPCC_show_available_commodores" and item.source == 3 and not purchase_offer then
                                 continue = false
                             end
@@ -1159,9 +1427,16 @@ mod.list_premium_cosmetics = function(self)
                             if continue then
                                 layout[#layout + 1] = {
                                     widget_type = "gear_item", -- ui_item
-                                    sort_data = item, item = item, slot = selected_item_slot, new_item_marker = is_new,
-                                    remove_new_marker_callback = remove_new_marker_callback, locked = true, profile = profile,
-                                    purchase_offer = purchase_offer, item_on_wishlist = item_on_wishlist
+                                    sort_data = item,
+                                    item = item,
+                                    slot = selected_item_slot,
+                                    new_item_marker = is_new,
+                                    remove_new_marker_callback = remove_new_marker_callback,
+                                    locked = true,
+                                    profile = profile,
+                                    purchase_offer = purchase_offer,
+                                    item_on_wishlist = item_on_wishlist,
+                                    offer = purchase_offer
                                 }
                             end
                         end
@@ -1217,9 +1492,14 @@ mod.list_premium_cosmetics = function(self)
                                     if valid then
                                         unlocked_items[#unlocked_items + 1] = item.__master_item.name
                                         layout[#layout + 1] = {
-                                            widget_type = WIDGET_TYPE_BY_SLOT[selected_slot_name], sort_data = item, item = item, locked = false,
-                                            slot = selected_item_slot, new_item_marker = is_new,
-                                            remove_new_marker_callback = remove_new_marker_callback, profile = profile
+                                            widget_type = WIDGET_TYPE_BY_SLOT[selected_slot_name],
+                                            sort_data = item,
+                                            item = item,
+                                            locked = false,
+                                            slot = selected_item_slot,
+                                            new_item_marker = is_new,
+                                            remove_new_marker_callback = remove_new_marker_callback,
+                                            profile = profile
                                         }
                                     end
                                 end
@@ -1228,7 +1508,9 @@ mod.list_premium_cosmetics = function(self)
                     end
 
                     -- Add divider
-                    layout[#layout + 1] = {widget_type = "divider"}
+                    layout[#layout + 1] = {
+                        widget_type = "divider"
+                    }
 
                     -- add locked items
                     for i = 1, #current_cosmetics do
@@ -1273,18 +1555,23 @@ mod.list_premium_cosmetics = function(self)
                                     if continue == true then
 
                                         local gear_id = item.gear_id
-                                        local is_new = self._context and self._context.new_items_gear_ids and
-                                                           self._context.new_items_gear_ids[gear_id]
+                                        local is_new = self._context and self._context.new_items_gear_ids and self._context.new_items_gear_ids[gear_id]
                                         local remove_new_marker_callback
                                         if is_new then
                                             remove_new_marker_callback = self._parent and callback(self._parent, "remove_new_item_mark")
                                         end
 
                                         layout[#layout + 1] = {
-                                            widget_type = WIDGET_TYPE_BY_SLOT[selected_slot_name], sort_data = item, item = item,
-                                            slot = selected_item_slot, new_item_marker = is_new,
-                                            remove_new_marker_callback = remove_new_marker_callback, locked = true, profile = profile,
-                                            purchase_offer = nil, item_on_wishlist = false
+                                            widget_type = WIDGET_TYPE_BY_SLOT[selected_slot_name],
+                                            sort_data = item,
+                                            item = item,
+                                            slot = selected_item_slot,
+                                            new_item_marker = is_new,
+                                            remove_new_marker_callback = remove_new_marker_callback,
+                                            locked = true,
+                                            profile = profile,
+                                            purchase_offer = nil,
+                                            item_on_wishlist = false
                                         }
                                     end
                                 end
@@ -1298,9 +1585,11 @@ mod.list_premium_cosmetics = function(self)
 
             end
 
+
         )
     end
 end
+
 
 -- Get all cosmetics items available, from the MasterItems cache.
 mod.get_cosmetic_items = function(self, selectedslot)
@@ -1350,6 +1639,7 @@ mod.get_cosmetic_items = function(self, selectedslot)
     return cosmetic_items
 end
 
+
 -- SETUP COMMODORES ITEM TOGGLES
 InventoryCosmeticsView.cb_on_commodores_toggle_pressed = function(self)
     if self._commodores_toggle == "loc_VPCC_show_all_commodores" then
@@ -1365,9 +1655,8 @@ InventoryCosmeticsView.cb_on_commodores_toggle_pressed = function(self)
     mod.focus_on_item(self, previewed_items)
 end
 
-local Definitions = mod:io_dofile(
-                        "character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/character_cosmetics_view_improved_definitions"
-                    )
+
+local Definitions = mod:io_dofile("character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/character_cosmetics_view_improved_definitions")
 local ViewElementInputLegend = require("scripts/ui/view_elements/view_element_input_legend/view_element_input_legend")
 InventoryCosmeticsView._setup_input_legend = function(self)
     self._input_legend_element = self:_add_element(ViewElementInputLegend, "input_legend", 10)
@@ -1378,19 +1667,21 @@ InventoryCosmeticsView._setup_input_legend = function(self)
         local legend_input = legend_inputs[i]
         local on_pressed_callback = legend_input.on_pressed_callback and callback(self, legend_input.on_pressed_callback)
 
-        self._input_legend_element:add_entry(
-            legend_input.display_name, legend_input.input_action, legend_input.visibility_function, on_pressed_callback, legend_input.alignment
-        )
+        self._input_legend_element:add_entry(legend_input.display_name, legend_input.input_action, legend_input.visibility_function, on_pressed_callback, legend_input.alignment)
     end
 end
+
 
 InventoryCosmeticsView._setup_sort_options = function(self)
     if self._inventory_items then
         self._sort_options = {
             {
                 display_name = Localize(
-                    "loc_inventory_item_grid_sort_title_format_high_low", true, {sort_name = Localize("loc_inventory_item_grid_sort_title_rarity")}
-                ), sort_function = function(a, b)
+                    "loc_inventory_item_grid_sort_title_format_high_low", true, {
+                        sort_name = Localize("loc_inventory_item_grid_sort_title_rarity")
+                    }
+                ),
+                sort_function = function(a, b)
                     local a_locked, b_locked = a.locked, b.locked
                     if not a_locked and b_locked == true then
                         return true
@@ -1405,13 +1696,26 @@ InventoryCosmeticsView._setup_sort_options = function(self)
                     end
 
                     return ItemUtils.sort_comparator(
-                               {">", ItemUtils.compare_item_rarity, ">", ItemUtils.compare_item_level, "<", ItemUtils.compare_item_name}
-                           )(a, b)
+                        {
+                            ">",
+                            ItemUtils.compare_item_rarity,
+                            ">",
+                            ItemUtils.compare_item_level,
+                            "<",
+                            ItemUtils.compare_item_name
+                        }
+                    )(a, b)
                 end
-            }, {
+
+
+            },
+            {
                 display_name = Localize(
-                    "loc_inventory_item_grid_sort_title_format_low_high", true, {sort_name = Localize("loc_inventory_item_grid_sort_title_rarity")}
-                ), sort_function = function(a, b)
+                    "loc_inventory_item_grid_sort_title_format_low_high", true, {
+                        sort_name = Localize("loc_inventory_item_grid_sort_title_rarity")
+                    }
+                ),
+                sort_function = function(a, b)
                     local a_locked, b_locked = a.locked, b.locked
                     if not a_locked and b_locked == true then
                         return true
@@ -1425,14 +1729,26 @@ InventoryCosmeticsView._setup_sort_options = function(self)
                         return true
                     end
                     return ItemUtils.sort_comparator(
-                               {"<", ItemUtils.compare_item_rarity, ">", ItemUtils.compare_item_level, "<", ItemUtils.compare_item_name}
-                           )(a, b)
+                        {
+                            "<",
+                            ItemUtils.compare_item_rarity,
+                            ">",
+                            ItemUtils.compare_item_level,
+                            "<",
+                            ItemUtils.compare_item_name
+                        }
+                    )(a, b)
                 end
-            }, {
+
+
+            },
+            {
                 display_name = Localize(
-                    "loc_inventory_item_grid_sort_title_format_increasing_letters", true,
-                    {sort_name = Localize("loc_inventory_item_grid_sort_title_name")}
-                ), sort_function = function(a, b)
+                    "loc_inventory_item_grid_sort_title_format_increasing_letters", true, {
+                        sort_name = Localize("loc_inventory_item_grid_sort_title_name")
+                    }
+                ),
+                sort_function = function(a, b)
                     local a_locked, b_locked = a.locked, b.locked
                     if not a_locked and b_locked == true then
                         return true
@@ -1446,14 +1762,26 @@ InventoryCosmeticsView._setup_sort_options = function(self)
                         return true
                     end
                     return ItemUtils.sort_comparator(
-                               {"<", ItemUtils.compare_item_name, "<", ItemUtils.compare_item_level, "<", ItemUtils.compare_item_rarity}
-                           )(a, b)
+                        {
+                            "<",
+                            ItemUtils.compare_item_name,
+                            "<",
+                            ItemUtils.compare_item_level,
+                            "<",
+                            ItemUtils.compare_item_rarity
+                        }
+                    )(a, b)
                 end
-            }, {
+
+
+            },
+            {
                 display_name = Localize(
-                    "loc_inventory_item_grid_sort_title_format_decreasing_letters", true,
-                    {sort_name = Localize("loc_inventory_item_grid_sort_title_name")}
-                ), sort_function = function(a, b)
+                    "loc_inventory_item_grid_sort_title_format_decreasing_letters", true, {
+                        sort_name = Localize("loc_inventory_item_grid_sort_title_name")
+                    }
+                ),
+                sort_function = function(a, b)
                     local a_locked, b_locked = a.locked, b.locked
                     if not a_locked and b_locked == true then
                         return true
@@ -1467,9 +1795,18 @@ InventoryCosmeticsView._setup_sort_options = function(self)
                         return true
                     end
                     return ItemUtils.sort_comparator(
-                               {">", ItemUtils.compare_item_name, "<", ItemUtils.compare_item_level, "<", ItemUtils.compare_item_rarity}
-                           )(a, b)
+                        {
+                            ">",
+                            ItemUtils.compare_item_name,
+                            "<",
+                            ItemUtils.compare_item_level,
+                            "<",
+                            ItemUtils.compare_item_rarity
+                        }
+                    )(a, b)
                 end
+
+
             }
         }
     end
@@ -1480,3 +1817,5 @@ InventoryCosmeticsView._setup_sort_options = function(self)
     end
 
 end
+
+
