@@ -150,6 +150,7 @@ mod:hook_safe(
 mod:hook_safe(
     CLASS.InventoryCosmeticsView, "on_exit", function(self, element)
         mod.set_wishlist()
+
     end
 
 
@@ -497,6 +498,7 @@ mod.remove_item_from_wishlist = function(item)
         end
     end
 end
+
 
 mod:hook_safe(
     CLASS.InventoryCosmeticsView, "_preview_element", function(self, element)
@@ -914,6 +916,7 @@ local adjust_display_store_price = function(ItemPassTemplates)
                 return content.has_price_tag and not content.sold and mod:get("display_commodores_price_in_inventory") == true
             end
 
+
         }
 
         local wallet_icon = {
@@ -993,6 +996,8 @@ InventoryCosmeticsView.cb_on_store_pressed = function(self)
             Category_index = 4
         elseif archetype_name == "ogryn" then
             Category_index = 5
+        elseif archetype_name == "adamant" then
+            Category_index = 6
         end
 
         local ui_manager = Managers.ui
@@ -1007,6 +1012,8 @@ InventoryCosmeticsView.cb_on_store_pressed = function(self)
     end
 end
 
+
+local Archetypes = require("scripts/settings/archetype/archetypes")
 
 local STORE_LAYOUT = {
     {
@@ -1038,8 +1045,16 @@ local STORE_LAYOUT = {
         storefront = "premium_store_skins_ogryn",
         telemetry_name = "ogryn",
         template = ButtonPassTemplates.terminal_tab_menu_button
+    },
+    {
+        display_name = "loc_premium_store_category_skins_title_adamant",
+        storefront = "premium_store_skins_adamant",
+        telemetry_name = "adamant",
+        template = ButtonPassTemplates.terminal_tab_menu_button,
+        require_archetype_ownership = Archetypes.adamant
     }
 }
+
 local opened_store = false
 StoreView._on_page_index_selected = function(self, page_index)
     self._selected_page_index = page_index
@@ -1169,6 +1184,8 @@ mod.grab_current_commodores_items = function(self, archetype)
         storefront = "premium_store_skins_psyker"
     elseif archetype == "ogryn" or archetype == nil and archetype_name == "ogryn" then
         storefront = "premium_store_skins_ogryn"
+    elseif archetype == "adamant" or archetype == nil and archetype_name == "adamant" then
+        storefront = "premium_store_skins_adamant"
     end
 
     local store_service = Managers.data_service.store
@@ -1225,6 +1242,7 @@ local WIDGET_TYPE_BY_SLOT = {
     slot_animation_emote_5 = "ui_item",
     slot_animation_end_of_round = "gear_item",
     slot_character_title = "character_title_item",
+    slot_companion_gear_full = "gear_item",
     slot_gear_extra_cosmetic = "gear_item",
     slot_gear_head = "gear_item",
     slot_gear_lowerbody = "gear_item",
@@ -1328,7 +1346,8 @@ mod.list_premium_cosmetics = function(self)
                                             slot = selected_item_slot,
                                             new_item_marker = is_new,
                                             remove_new_marker_callback = remove_new_marker_callback,
-                                            profile = profile
+                                            profile = profile,
+                                            sort_group = 1
                                         }
                                     end
                                 end
@@ -1336,10 +1355,7 @@ mod.list_premium_cosmetics = function(self)
                         end
                     end
 
-                    -- Add divider
-                    layout[#layout + 1] = {
-                        widget_type = "divider"
-                    }
+                    local locked_items = {}
 
                     -- Add locked cosmetics
                     for i = 1, #current_cosmetics do
@@ -1424,27 +1440,64 @@ mod.list_premium_cosmetics = function(self)
                                 mod.remove_item_from_wishlist(item.__master_item)
                             end
 
+                            -- categorise locked items by their source
                             if continue then
-                                layout[#layout + 1] = {
-                                    widget_type = "gear_item", -- ui_item
-                                    sort_data = item,
-                                    item = item,
-                                    slot = selected_item_slot,
-                                    new_item_marker = is_new,
-                                    remove_new_marker_callback = remove_new_marker_callback,
-                                    locked = true,
-                                    profile = profile,
-                                    purchase_offer = purchase_offer,
-                                    item_on_wishlist = item_on_wishlist,
-                                    offer = purchase_offer
-                                }
+                                locked_items[item.source] = locked_items[item.source] or {}
+                                table.insert(locked_items[item.source], item)
                             end
                         end
                     end
 
-                    self._offer_items_layout = table.clone_instance(layout)
+                    -- Add divider
+                    layout[#layout + 1] = {
+                        widget_type = "divider",
+                        sort_group = 2
+                    }
 
-                    self:_present_layout_by_slot_filter(nil, nil, selected_item_slot.display_name)
+                    -- Add locked items to layout, grouped by source
+                    for source, items in pairs(locked_items) do
+                        -- 1 = Penance, 2 = Commisary, 3 = Commodore's Vestures, 4 = Hestia's Blessings
+                        local item_sort_group = 5
+
+                        if source == 1 then
+                            item_sort_group = 3
+                        elseif source == 2 then
+                            item_sort_group = 3
+                        elseif source == 3 then
+                            item_sort_group = 5
+                            -- Add divider
+                            layout[#layout + 1] = {
+                                widget_type = "divider",
+                                sort_group = 4
+                            }
+                        elseif source == 4 then
+                            item_sort_group = 3
+                        end
+
+                        for _, item in ipairs(items) do
+                            -- You may want to recalculate is_new, remove_new_marker_callback, item_on_wishlist, etc. here if needed per item
+                            layout[#layout + 1] = {
+                                widget_type = "gear_item",
+                                sort_data = item,
+                                item = item,
+                                slot = selected_item_slot,
+                                new_item_marker = item.is_new,
+                                remove_new_marker_callback = item.remove_new_marker_callback,
+                                locked = true,
+                                profile = profile,
+                                purchase_offer = item.offer,
+                                item_on_wishlist = item.item_on_wishlist,
+                                offer = item.offer,
+                                sort_group = item_sort_group
+                            }
+                        end
+                    end
+                                            dbg_layout = layout
+
+                    if layout ~= nil then
+                        self._offer_items_layout = table.clone_instance(layout)
+                        self:_present_layout_by_slot_filter(nil, nil, selected_item_slot.display_name)
+                    end
                 else
 
                     -- anything other than hats, torso, legs, back 
@@ -1499,7 +1552,8 @@ mod.list_premium_cosmetics = function(self)
                                             slot = selected_item_slot,
                                             new_item_marker = is_new,
                                             remove_new_marker_callback = remove_new_marker_callback,
-                                            profile = profile
+                                            profile = profile,
+                                            sort_group = 1
                                         }
                                     end
                                 end
@@ -1509,7 +1563,8 @@ mod.list_premium_cosmetics = function(self)
 
                     -- Add divider
                     layout[#layout + 1] = {
-                        widget_type = "divider"
+                        widget_type = "divider",
+                        sort_group = 2
                     }
 
                     -- add locked items
@@ -1571,7 +1626,8 @@ mod.list_premium_cosmetics = function(self)
                                             locked = true,
                                             profile = profile,
                                             purchase_offer = nil,
-                                            item_on_wishlist = false
+                                            item_on_wishlist = false,
+                                            sort_group = 3
                                         }
                                     end
                                 end
@@ -1579,8 +1635,10 @@ mod.list_premium_cosmetics = function(self)
                         end
                     end
 
-                    self._offer_items_layout = table.clone_instance(layout)
-                    self:_present_layout_by_slot_filter(nil, nil, selected_item_slot.display_name)
+                    if layout ~= nil then
+                        self._offer_items_layout = table.clone_instance(layout)
+                        self:_present_layout_by_slot_filter(nil, nil, selected_item_slot.display_name)
+                    end
                 end
 
             end
@@ -1671,7 +1729,7 @@ InventoryCosmeticsView._setup_input_legend = function(self)
     end
 end
 
-
+--[[
 InventoryCosmeticsView._setup_sort_options = function(self)
     if self._inventory_items then
         self._sort_options = {
@@ -1682,19 +1740,6 @@ InventoryCosmeticsView._setup_sort_options = function(self)
                     }
                 ),
                 sort_function = function(a, b)
-                    local a_locked, b_locked = a.locked, b.locked
-                    if not a_locked and b_locked == true then
-                        return true
-                    elseif not b_locked and a_locked == true then
-                        return false
-                    end
-
-                    if a.widget_type == "divider" and not b_locked or b.widget_type == "divider" and a_locked == true then
-                        return false
-                    elseif a.widget_type == "divider" and b_locked == true or b.widget_type == "divider" and not a_locked then
-                        return true
-                    end
-
                     return ItemUtils.sort_comparator(
                         {
                             ">",
@@ -1716,18 +1761,7 @@ InventoryCosmeticsView._setup_sort_options = function(self)
                     }
                 ),
                 sort_function = function(a, b)
-                    local a_locked, b_locked = a.locked, b.locked
-                    if not a_locked and b_locked == true then
-                        return true
-                    elseif not b_locked and a_locked == true then
-                        return false
-                    end
-
-                    if a.widget_type == "divider" and not b_locked or b.widget_type == "divider" and a_locked == true then
-                        return false
-                    elseif a.widget_type == "divider" and b_locked == true or b.widget_type == "divider" and not a_locked then
-                        return true
-                    end
+                   
                     return ItemUtils.sort_comparator(
                         {
                             "<",
@@ -1749,18 +1783,7 @@ InventoryCosmeticsView._setup_sort_options = function(self)
                     }
                 ),
                 sort_function = function(a, b)
-                    local a_locked, b_locked = a.locked, b.locked
-                    if not a_locked and b_locked == true then
-                        return true
-                    elseif not b_locked and a_locked == true then
-                        return false
-                    end
-
-                    if a.widget_type == "divider" and not b_locked or b.widget_type == "divider" and a_locked == true then
-                        return false
-                    elseif a.widget_type == "divider" and b_locked == true or b.widget_type == "divider" and not a_locked then
-                        return true
-                    end
+                    
                     return ItemUtils.sort_comparator(
                         {
                             "<",
@@ -1782,18 +1805,7 @@ InventoryCosmeticsView._setup_sort_options = function(self)
                     }
                 ),
                 sort_function = function(a, b)
-                    local a_locked, b_locked = a.locked, b.locked
-                    if not a_locked and b_locked == true then
-                        return true
-                    elseif not b_locked and a_locked == true then
-                        return false
-                    end
-
-                    if a.widget_type == "divider" and not b_locked or b.widget_type == "divider" and a_locked == true then
-                        return false
-                    elseif a.widget_type == "divider" and b_locked == true or b.widget_type == "divider" and not a_locked then
-                        return true
-                    end
+                   
                     return ItemUtils.sort_comparator(
                         {
                             ">",
@@ -1817,5 +1829,4 @@ InventoryCosmeticsView._setup_sort_options = function(self)
     end
 
 end
-
-
+]]
