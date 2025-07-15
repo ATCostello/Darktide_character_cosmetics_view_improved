@@ -208,7 +208,7 @@ mod.focus_on_item = function(self, items)
             if element_item and element_item.__master_item and item.__master_item then
                 if element_item and element_item.__master_item.name == item.__master_item.name then
                     local widget_index = item_grid:widget_index(widget) or 1
-                    local scrollbar_animation_progress = item_grid:get_scrollbar_percentage_by_index(widget_index)
+                    local scrollbar_animation_progress = item_grid:get_scrollbar_percentage_by_index(widget_index) or 0
                     local instant_scroll = true
 
                     item_grid:focus_grid_index(widget_index, scrollbar_animation_progress + 0.05, instant_scroll)
