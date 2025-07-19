@@ -91,5 +91,6 @@ return {
     },
     display_commodores_price_in_inventory = {
         en = "Show Aquila price in inventory?",
+        ru = "Показывать цену аквил в инвентаре?",
     }
 }
