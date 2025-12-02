@@ -12,7 +12,6 @@ local InventoryCosmeticsView = require("scripts/ui/views/inventory_cosmetics_vie
 local InventoryBackgroundView = require("scripts/ui/views/inventory_background_view/inventory_background_view")
 local ProfileUtils = require("scripts/utilities/profile_utils")
 local ViewElementProfilePresets = require("scripts/ui/view_elements/view_element_profile_presets/view_element_profile_presets")
-local ViewElementCosmeticPresets = mod:io_dofile("character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/view_element_cosmetic_presets")
 
 local StoreView = require("scripts/ui/views/store_view/store_view")
 local CCVIData = mod:io_dofile("character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/character_cosmetics_view_improved_data")
@@ -25,113 +24,6 @@ current_commodores_offers = {}
 mod.on_all_mods_loaded = function()
     mod.get_wishlist()
 end
-
-
-InventoryBackgroundView.event_on_profile_preset_changed = function(self, profile_preset, on_preset_deleted)
-    local active_layout = self._active_talent_loadout
-    local active_layout_version = active_layout.version
-    local previously_active_profile_preset_id = self._active_profile_preset_id
-
-    if previously_active_profile_preset_id then
-        local current_profile_equipped_talents = self._current_profile_equipped_talents
-
-        ProfileUtils.save_talent_nodes_for_profile_preset(previously_active_profile_preset_id, current_profile_equipped_talents, active_layout_version)
-    end
-
-    if profile_preset and profile_preset.loadout then
-        for slot_id, gear_id in pairs(profile_preset.loadout) do
-            local item = self:_get_inventory_item_by_id(gear_id)
-
-            if item then
-                if mod:get("unhook_cosmetics_from_presets") == true then
-                    if slot_id == "slot_primary" or slot_id == "slot_secondary" or slot_id == "slot_attachment_1" or slot_id == "slot_attachment_2" or slot_id == "slot_attachment_3" then
-                        self:_equip_slot_item(slot_id, item)
-                    end
-                else
-                    self:_equip_slot_item(slot_id, item)
-                end
-            end
-        end
-    end
-
-    if profile_preset then
-        local active_talent_loadout = self._active_talent_loadout
-        local active_talent_version = active_talent_loadout.version
-
-        if profile_preset.talents_version == active_talent_version then
-            self._current_profile_equipped_talents = profile_preset.talents or {}
-        else
-            self._current_profile_equipped_talents = {}
-        end
-    else
-        self:_apply_current_talents_to_profile()
-    end
-
-    self._active_profile_preset_id = ProfileUtils.get_active_profile_preset_id()
-
-    self:_update_loadout_validation()
-    self:_update_presentation_wield_item()
-
-    if not table.is_empty(self._invalid_slots) or not table.is_empty(self._duplicated_slots) or not table.is_empty(self._modified_slots) then
-        Managers.event:trigger(
-            "event_add_notification_message", "alert", {
-                text = Localize("loc_inventory_error_loadout_items")
-            }
-        )
-    end
-end
-
-
-InventoryBackgroundView.event_on_profile_cosmetic_preset_changed = function(self, profile_preset, on_preset_deleted)
-    if profile_preset and profile_preset.loadout then
-        for slot_id, gear_id in pairs(profile_preset.loadout) do
-            local item = self:_get_inventory_item_by_id(gear_id)
-
-            if item then
-                if slot_id ~= "slot_primary" and slot_id ~= "slot_secondary" and slot_id ~= "slot_attachment_1" and slot_id ~= "slot_attachment_2" and slot_id ~= "slot_attachment_3" then
-
-                    local presentation_profile = self._presentation_profile
-                    local presentation_loadout = presentation_profile.loadout
-
-                    local item_gear_id = type(item) == "table" and item.gear_id or type(item) == "string" and item
-
-                    presentation_loadout[slot_id] = item
-
-                    local player_profile = self._presentation_profile
-
-                    InventoryBackgroundView._equip_local_changes(self)
-                end
-            end
-        end
-    end
-end
-
-
-mod:hook_safe(
-    CLASS.InventoryBackgroundView, "_setup_top_panel", function(self)
-
-        -- Remove the default profile (loadout) presets bar from the top right on the cosmetics screen.
-        self._views_settings[2].enter = function()
-            if mod:get("unhook_cosmetics_from_presets") == true then
-                self:_remove_profile_presets()
-                -- self._cosmetic_presets_element = self:_add_element(ViewElementCosmeticPresets, "cosmetic_presets", 90, nil, "profile_presets_pivot")
-                self:_register_event("event_on_profile_cosmetic_preset_changed")
-            end
-        end
-
-
-        self._views_settings[2].leave = function()
-            if mod:get("unhook_cosmetics_from_presets") == true then
-                self:_setup_profile_presets()
-                self:_remove_element("cosmetic_presets")
-            end
-        end
-
-
-    end
-
-
-)
 
 local DataServiceBackendCache = require("scripts/managers/data_service/data_service_backend_cache")
 
@@ -998,6 +890,8 @@ InventoryCosmeticsView.cb_on_store_pressed = function(self)
             Category_index = 5
         elseif archetype_name == "adamant" then
             Category_index = 6
+        elseif archetype_name == "broker" then
+            Category_index = 7
         end
 
         local ui_manager = Managers.ui
@@ -1016,43 +910,59 @@ end
 local Archetypes = require("scripts/settings/archetype/archetypes")
 
 local STORE_LAYOUT = {
-    {
-        display_name = "loc_premium_store_category_title_featured",
-        storefront = "premium_store_featured",
-        telemetry_name = "featured",
-        template = ButtonPassTemplates.terminal_tab_menu_with_divider_button
-    },
-    {
-        display_name = "loc_premium_store_category_skins_title_veteran",
-        storefront = "premium_store_skins_veteran",
-        telemetry_name = "veteran",
-        template = ButtonPassTemplates.terminal_tab_menu_with_divider_button
-    },
-    {
-        display_name = "loc_premium_store_category_skins_title_zealot",
-        storefront = "premium_store_skins_zealot",
-        telemetry_name = "zealot",
-        template = ButtonPassTemplates.terminal_tab_menu_with_divider_button
-    },
-    {
-        display_name = "loc_premium_store_category_skins_title_psyker",
-        storefront = "premium_store_skins_psyker",
-        telemetry_name = "psyker",
-        template = ButtonPassTemplates.terminal_tab_menu_with_divider_button
-    },
-    {
-        display_name = "loc_premium_store_category_skins_title_ogryn",
-        storefront = "premium_store_skins_ogryn",
-        telemetry_name = "ogryn",
-        template = ButtonPassTemplates.terminal_tab_menu_button
-    },
-    {
-        display_name = "loc_premium_store_category_skins_title_adamant",
-        storefront = "premium_store_skins_adamant",
-        telemetry_name = "adamant",
-        template = ButtonPassTemplates.terminal_tab_menu_button,
-        require_archetype_ownership = Archetypes.adamant
-    }
+	{
+		display_name = "loc_premium_store_category_title_featured",
+		storefront = "premium_store_featured",
+		telemetry_name = "featured",
+		template = nil,
+		template = ButtonPassTemplates.terminal_tab_menu_with_divider_button,
+	},
+	{
+		display_name = "loc_premium_store_category_skins_title_veteran",
+		storefront = "premium_store_skins_veteran",
+		telemetry_name = "veteran",
+		template = nil,
+		template = ButtonPassTemplates.terminal_tab_menu_with_divider_button,
+	},
+	{
+		display_name = "loc_premium_store_category_skins_title_zealot",
+		storefront = "premium_store_skins_zealot",
+		telemetry_name = "zealot",
+		template = nil,
+		template = ButtonPassTemplates.terminal_tab_menu_with_divider_button,
+	},
+	{
+		display_name = "loc_premium_store_category_skins_title_psyker",
+		storefront = "premium_store_skins_psyker",
+		telemetry_name = "psyker",
+		template = nil,
+		template = ButtonPassTemplates.terminal_tab_menu_with_divider_button,
+	},
+	{
+		display_name = "loc_premium_store_category_skins_title_ogryn",
+		storefront = "premium_store_skins_ogryn",
+		telemetry_name = "ogryn",
+		template = nil,
+		template = ButtonPassTemplates.terminal_tab_menu_with_divider_button,
+	},
+	{
+		display_name = "loc_premium_store_category_skins_title_adamant",
+		require_archetype_ownership = nil,
+		storefront = "premium_store_skins_adamant",
+		telemetry_name = "adamant",
+		template = nil,
+		template = ButtonPassTemplates.terminal_tab_menu_with_divider_button,
+		require_archetype_ownership = Archetypes.adamant,
+	},
+	{
+		display_name = "loc_premium_store_category_skins_title_broker",
+		require_archetype_ownership = nil,
+		storefront = "premium_store_skins_broker",
+		telemetry_name = "broker",
+		template = nil,
+		template = ButtonPassTemplates.terminal_tab_menu_button,
+		require_archetype_ownership = Archetypes.broker,
+	},
 }
 
 local opened_store = false
@@ -1186,7 +1096,9 @@ mod.grab_current_commodores_items = function(self, archetype)
         storefront = "premium_store_skins_ogryn"
     elseif archetype == "adamant" or archetype == nil and archetype_name == "adamant" then
         storefront = "premium_store_skins_adamant"
-    end
+    elseif archetype == "broker" or archetype == nil and archetype_name == "broker" then
+		storefront = "premium_store_skins_broker"
+	end
 
     local store_service = Managers.data_service.store
 
