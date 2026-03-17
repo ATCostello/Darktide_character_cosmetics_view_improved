@@ -1,7 +1,3 @@
---[[
-    Name: View Premium Character Cosmetics
-    Author: Alfthebigheaded
-]]
 local mod = get_mod("character_cosmetics_view_improved")
 local MasterItems = require("scripts/backend/master_items")
 
@@ -924,9 +920,6 @@ StoreView._on_page_index_selected = function(self, page_index)
 	local category_index = self._selected_category_index
 	local category_layout = STORE_LAYOUT[category_index]
 	local category_name = category_layout.telemetry_name
-
-	self:_set_telemetry_name(category_name, page_index)
-
 	local category_pages_layout_data = self._category_pages_layout_data
 
 	if not category_pages_layout_data then
@@ -942,6 +935,11 @@ StoreView._on_page_index_selected = function(self, page_index)
 	local previous_page_index = self._selected_page_index
 
 	self._selected_page_index = page_index
+
+	self:_set_telemetry_name(category_name, page_index)
+
+	self._widgets_by_name.navigation_arrow_left.content.visible = page_index > 1
+	self._widgets_by_name.navigation_arrow_right.content.visible = page_index < #self._category_pages_layout_data
 
 	if self._page_panel then
 		self._page_panel:set_selected_index(page_index)
