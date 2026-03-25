@@ -62,7 +62,8 @@ local legend_inputs = {
 		input_action = "hotkey_menu_special_1",
 		on_pressed_callback = "cb_on_commodores_toggle_pressed",
 		visibility_function = function(parent, id)
-			parent._input_legend_element:set_display_name(id, parent._commodores_toggle)
+			local display_name = mod:get("show_commodores") or "?"
+			parent._input_legend_element:set_display_name(id, display_name)
 
 			local previewed_item = parent._previewed_item
 

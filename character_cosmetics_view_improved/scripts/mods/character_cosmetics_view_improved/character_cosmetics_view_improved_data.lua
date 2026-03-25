@@ -7,34 +7,44 @@ return {
 	options = {
 		widgets = {
 			{
-				setting_id = "show_commodores",
-				type = "dropdown",
-				default_value = "loc_VPCC_show_all_commodores",
-				options = {
+				setting_id = "general_settings",
+				type = "group",
+				sub_widgets = {
 					{
-						text = "All",
-						value = "loc_VPCC_show_all_commodores",
+						setting_id = "show_commodores",
+						type = "dropdown",
+						default_value = "loc_VPCC_show_all_commodores",
+						tooltip = "show_commodores_tooltip",
+						options = {
+							{
+								text = "All",
+								value = "loc_VPCC_show_all_commodores",
+							},
+							{
+								text = "OnlyAvailable",
+								value = "loc_VPCC_show_available_commodores",
+							},
+							{
+								text = "None",
+								value = "loc_VPCC_show_no_commodores",
+							},
+						},
 					},
 					{
-						text = "OnlyAvailable",
-						value = "loc_VPCC_show_available_commodores",
+						setting_id = "show_unobtainable",
+						type = "checkbox",
+						default_value = false,
+						tooltip = "show_unobtainable_tooltip",
 					},
 					{
-						text = "None",
-						value = "loc_VPCC_show_no_commodores",
+						setting_id = "display_commodores_price_in_inventory",
+						type = "checkbox",
+						default_value = true,
+						tooltip = "display_commodores_price_in_inventory_tooltip",
 					},
 				},
 			},
-			{
-				setting_id = "show_unobtainable",
-				type = "checkbox",
-				default_value = false,
-			},
-			{
-				setting_id = "display_commodores_price_in_inventory",
-				type = "checkbox",
-				default_value = true,
-			},
+
 			-- {
 			--	setting_id = "unhook_cosmetics_from_presets",
 			--	type = "checkbox",

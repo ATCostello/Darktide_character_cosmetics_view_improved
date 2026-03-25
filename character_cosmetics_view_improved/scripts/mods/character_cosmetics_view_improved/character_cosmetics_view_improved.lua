@@ -349,6 +349,10 @@ mod.remove_item_from_wishlist = function(item)
 	end
 end
 
+function string.starts(String, Start)
+	return string.sub(String, 1, string.len(Start)) == Start
+end
+
 mod:hook_safe(CLASS.InventoryCosmeticsView, "_preview_element", function(self, element)
 	local is_locked = element.locked
 	if is_locked then
@@ -358,6 +362,8 @@ mod:hook_safe(CLASS.InventoryCosmeticsView, "_preview_element", function(self, e
 	-- find if item is on wishlist
 	local item_on_wishlist = false
 	local widgets_by_name = self._widgets_by_name
+
+	dbg_previewed_item = self._previewed_item
 
 	if self._previewed_item and self._previewed_item.__master_item then
 		local previewed_item = self._previewed_item
@@ -1136,7 +1142,6 @@ mod.get_item_in_current_commodores = function(self, gearid, item_name)
 		return
 	end
 
-	dbg_cco = current_commodores_offers
 	for i = 1, #current_commodores_offers do
 		if current_commodores_offers[i].bundleInfo then
 			-- For bundles
@@ -1432,7 +1437,6 @@ mod.list_premium_cosmetics = function(self)
 						}
 					end
 				end
-				dbg_layout = layout
 
 				if layout ~= nil then
 					self._offer_items_layout = table.clone_instance(layout)
@@ -1549,6 +1553,21 @@ mod.list_premium_cosmetics = function(self)
 								if not mod:get("show_unobtainable") then
 									if item.source == nil or item.source < 1 then
 										continue = false
+									end
+								end
+
+								-- filter out broken/placeholder frames
+								if not mod:get("show_unobtainable") then
+									if selected_item_slot.name == "slot_portrait_frame" then
+										local localized_name = Localize(item.display_name)
+										-- unlocalised achievement frames
+										if item.dev_name and string.starts(localized_name, "achievements_") then
+											continue = false
+										end
+										-- unlocalized expedition frame
+										if item.dev_name and string.starts(localized_name, "portrait_frame") then
+											continue = false
+										end
 									end
 								end
 
