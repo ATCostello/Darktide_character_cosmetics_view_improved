@@ -1360,6 +1360,7 @@ mod.list_premium_cosmetics = function(self)
 							item.offer = purchase_offer
 						end
 
+						-- show only available
 						if
 							self._commodores_toggle == "loc_VPCC_show_available_commodores"
 							and item.source == 3
@@ -1384,6 +1385,15 @@ mod.list_premium_cosmetics = function(self)
 						-- remove purchased items from wishlist
 						if item_on_wishlist and item.__locked and item.__locked == false then
 							mod.remove_item_from_wishlist(item.__master_item)
+						end
+
+						-- show only wishlisted 
+						if
+							self._commodores_toggle == "loc_VPCC_show_wishlisted_commodores"
+							and item.source == 3
+							and not item_on_wishlist
+						then
+							continue = false
 						end
 
 						-- categorise locked items by their source
@@ -1663,6 +1673,8 @@ InventoryCosmeticsView.cb_on_commodores_toggle_pressed = function(self)
 	if self._commodores_toggle == "loc_VPCC_show_all_commodores" then
 		self._commodores_toggle = "loc_VPCC_show_available_commodores"
 	elseif self._commodores_toggle == "loc_VPCC_show_available_commodores" then
+		self._commodores_toggle = "loc_VPCC_show_wishlisted_commodores"
+	elseif self._commodores_toggle == "loc_VPCC_show_wishlisted_commodores" then
 		self._commodores_toggle = "loc_VPCC_show_no_commodores"
 	elseif self._commodores_toggle == "loc_VPCC_show_no_commodores" then
 		self._commodores_toggle = "loc_VPCC_show_all_commodores"

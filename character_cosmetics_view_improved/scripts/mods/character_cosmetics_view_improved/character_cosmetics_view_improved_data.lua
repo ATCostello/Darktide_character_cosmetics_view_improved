@@ -25,6 +25,10 @@ return {
 								value = "loc_VPCC_show_available_commodores",
 							},
 							{
+								text = "OnlyWishlisted",
+								value = "loc_VPCC_show_wishlisted_commodores",
+							},
+							{
 								text = "None",
 								value = "loc_VPCC_show_no_commodores",
 							},
