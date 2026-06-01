@@ -45,6 +45,15 @@ mod:hook_safe(CLASS.InventoryView, "on_exit", function(self, element)
 	current_commodores_offers = {}
 end)
 
+-- Keep cosmetic icons loaded when scrolling past (don't unload/reload)
+-- gear_item widgets use 3D render target icons which are expensive to regenerate
+mod:hook(CLASS.ViewElementGrid, "_on_present_grid_layout_changed", function(original_func, self, layout, content_blueprints, ...)
+	if content_blueprints and content_blueprints.gear_item then
+		content_blueprints.gear_item.unload_icon = function() end
+	end
+	return original_func(self, layout, content_blueprints, ...)
+end)
+
 mod.get_wishlist = function()
 	local CCVI = get_mod("character_cosmetics_view_improved")
 	if CCVI then
