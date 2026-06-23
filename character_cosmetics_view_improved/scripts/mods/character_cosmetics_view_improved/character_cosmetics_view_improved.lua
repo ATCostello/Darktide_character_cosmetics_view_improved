@@ -390,8 +390,6 @@ mod:hook_safe(CLASS.InventoryCosmeticsView, "_preview_element", function(self, e
 	local item_on_wishlist = false
 	local widgets_by_name = self._widgets_by_name
 
-	dbg_p = self._previewed_item
-
 	if self._previewed_item and self._previewed_item.__master_item then
 		local previewed_item = self._previewed_item
 		local previewed_item_name = previewed_item.__master_item.dev_name
@@ -1122,14 +1120,16 @@ StoreView._on_page_index_selected = function(self, page_index, select_element)
 			promise = Promise.resolved()
 		end
 
-		promise:next(callback(self, "_show_grid_entries", page_index, previous_page_index), function()
-			return
-		end):next(function()
-			if select_element then
-				self:_set_selected_grid_index(select_element.index)
-				StoreView.cb_on_grid_entry_left_pressed(self, nil, select_element)
-			end
-		end)
+		promise
+			:next(callback(self, "_show_grid_entries", page_index, previous_page_index), function()
+				return
+			end)
+			:next(function()
+				if select_element then
+					self:_set_selected_grid_index(select_element.index)
+					StoreView.cb_on_grid_entry_left_pressed(self, nil, select_element)
+				end
+			end)
 	end)
 end
 
@@ -1366,7 +1366,7 @@ mod.list_premium_cosmetics = function(self)
 							end
 							local valid = true
 
-							if forcurrentbreed then
+							if forcurrentbreed and item.__master_item then
 								-- Remove incorrect background prisoner garbs
 								if string.find(item.__master_item.display_name, "prisoner") then
 									if
@@ -1629,7 +1629,7 @@ mod.list_premium_cosmetics = function(self)
 							end
 							local valid = true
 
-							if forcurrentbreed then
+							if forcurrentbreed and item.__master_item then
 								local gear_id = item.gear_id
 								local is_new = self._context
 									and self._context.new_items_gear_ids
@@ -1695,7 +1695,7 @@ mod.list_premium_cosmetics = function(self)
 							end
 							local valid = true
 
-							if forcurrentbreed then
+							if forcurrentbreed and item.__master_item then
 								for x, unlocked_item_name in pairs(unlocked_items) do
 									if item.name == unlocked_item_name then
 										continue = false
