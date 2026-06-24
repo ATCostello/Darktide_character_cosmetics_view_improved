@@ -1349,6 +1349,12 @@ mod.list_premium_cosmetics = function(self)
 					local item = self._inventory_items[i]
 					if item then
 						local forcurrentbreed = false
+						local master_item = item.__master_item or item
+						if item.__master_item then
+							master_item = item.__master_item
+						else
+							master_item = item
+						end
 
 						if item.breeds then
 							for x, breed in pairs(item.breeds) do
@@ -1366,18 +1372,23 @@ mod.list_premium_cosmetics = function(self)
 							end
 							local valid = true
 
-							if forcurrentbreed and item.__master_item then
+							if forcurrentbreed then
 								-- Remove incorrect background prisoner garbs
-								if string.find(item.__master_item.display_name, "prisoner") then
+								if string.find(master_item.display_name, "prisoner") then
 									if
-										item.__master_item.crimes
-										and #item.__master_item.crimes > 0
-										and profile.lore
-										and profile.lore.backstory
-										and profile.lore.backstory.crime
+										master_item.crimes
+											and #master_item.crimes > 0
+											and profile.lore
+											and profile.lore.backstory
+											and profile.lore.backstory.crime
+										or item.crimes
+											and #item.crimes > 0
+											and profile.lore
+											and profile.lore.backstory
+											and profile.lore.backstory.crime
 									then
 										valid = false
-										for i, crime in pairs(item.__master_item.crimes) do
+										for i, crime in pairs(master_item.crimes) do
 											if profile.lore.backstory.crime == crime then
 												valid = true
 											end
@@ -1394,7 +1405,7 @@ mod.list_premium_cosmetics = function(self)
 
 									-- find if item is on wishlist
 									local item_on_wishlist = false
-									local previewed_item_name = item.__master_item.dev_name
+									local previewed_item_name = master_item.dev_name or ""
 									if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
 										for i, item1 in pairs(wishlisted_items) do
 											if item1 and item1.dev_name == previewed_item_name then
@@ -1405,7 +1416,7 @@ mod.list_premium_cosmetics = function(self)
 
 									-- remove purchased items from wishlist
 									if item_on_wishlist then
-										mod.remove_item_from_wishlist(item.__master_item)
+										mod.remove_item_from_wishlist(master_item)
 									end
 
 									if is_new then
@@ -1413,7 +1424,7 @@ mod.list_premium_cosmetics = function(self)
 											and callback(self._parent, "remove_new_item_mark")
 									end
 
-									unlocked_items[#unlocked_items + 1] = item.__master_item.name
+									unlocked_items[#unlocked_items + 1] = master_item.name
 									layout[#layout + 1] = {
 										widget_type = "gear_item",
 										sort_data = item,
@@ -1443,6 +1454,13 @@ mod.list_premium_cosmetics = function(self)
 					)
 					if item then
 						local continue = true
+
+						local master_item = item.__master_item or item
+						if item.__master_item then
+							master_item = item.__master_item
+						else
+							master_item = item
+						end
 
 						local gear_id = item.gear_id
 						local is_new = self._context
@@ -1516,7 +1534,7 @@ mod.list_premium_cosmetics = function(self)
 						local item_on_wishlist = false
 						local widgets_by_name = self._widgets_by_name
 
-						local previewed_item_name = item.__master_item.dev_name
+						local previewed_item_name = master_item.dev_name
 						if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
 							for i, item1 in pairs(wishlisted_items) do
 								if item1 and item1.dev_name == previewed_item_name then
@@ -1527,7 +1545,7 @@ mod.list_premium_cosmetics = function(self)
 
 						-- remove purchased items from wishlist
 						if item_on_wishlist and item.__locked and item.__locked == false then
-							mod.remove_item_from_wishlist(item.__master_item)
+							mod.remove_item_from_wishlist(master_item)
 						end
 
 						-- show only wishlisted
@@ -1612,6 +1630,12 @@ mod.list_premium_cosmetics = function(self)
 					local item = self._inventory_items[i]
 					if item then
 						local forcurrentbreed = false
+						local master_item = item.__master_item or item
+						if item.__master_item then
+							master_item = item.__master_item
+						else
+							master_item = item
+						end
 
 						if item.breeds then
 							for x, breed in pairs(item.breeds) do
@@ -1629,7 +1653,7 @@ mod.list_premium_cosmetics = function(self)
 							end
 							local valid = true
 
-							if forcurrentbreed and item.__master_item then
+							if forcurrentbreed and master_item then
 								local gear_id = item.gear_id
 								local is_new = self._context
 									and self._context.new_items_gear_ids
@@ -1641,7 +1665,7 @@ mod.list_premium_cosmetics = function(self)
 								end
 
 								if valid then
-									unlocked_items[#unlocked_items + 1] = item.__master_item.name
+									unlocked_items[#unlocked_items + 1] = master_item.name
 									layout[#layout + 1] = {
 										widget_type = WIDGET_TYPE_BY_SLOT[selected_slot_name],
 										sort_data = item,
@@ -1678,6 +1702,12 @@ mod.list_premium_cosmetics = function(self)
 
 					if item then
 						local forcurrentbreed = false
+						local master_item = item.__master_item or item
+						if item.__master_item then
+							master_item = item.__master_item
+						else
+							master_item = item
+						end
 
 						if item.breeds then
 							for x, breed in pairs(item.breeds) do
@@ -1695,7 +1725,7 @@ mod.list_premium_cosmetics = function(self)
 							end
 							local valid = true
 
-							if forcurrentbreed and item.__master_item then
+							if forcurrentbreed and master_item then
 								for x, unlocked_item_name in pairs(unlocked_items) do
 									if item.name == unlocked_item_name then
 										continue = false
