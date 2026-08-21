@@ -1,5 +1,5 @@
 local mod = get_mod("character_cosmetics_view_improved")
-mod.version = "4.7.05"
+mod.version = "4.7.06"
 mod:info("Character Cosmetics View Improved is installed, using version: " .. tostring(mod.version))
 
 local colours = {
@@ -82,16 +82,16 @@ mod:add_global_localize_strings({
 		["zh-tw"] = "在商店中查看",
 	},
 	loc_VPCC_wishlist = {
-		en = " ",
-		ru = " ",
-		["zh-cn"] = " ",
-		["zh-tw"] = " ",
+		en = "",
+		ru = "",
+		["zh-cn"] = "",
+		["zh-tw"] = "",
 	},
 	loc_VPCC_in_store = {
-		en = " ",
-		ru = " ",
-		["zh-cn"] = " ",
-		["zh-tw"] = " ",
+		en = "",
+		ru = "",
+		["zh-cn"] = "",
+		["zh-tw"] = "",
 	},
 	loc_VPCC_wishlist_added = {
 		en = " has been added to your wishlist.",
