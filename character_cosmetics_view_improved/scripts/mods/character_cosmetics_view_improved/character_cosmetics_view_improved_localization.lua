@@ -1,5 +1,5 @@
 local mod = get_mod("character_cosmetics_view_improved")
-mod.version = "4.7.06"
+mod.version = "4.7.07"
 mod:info("Character Cosmetics View Improved is installed, using version: " .. tostring(mod.version))
 
 local colours = {
@@ -52,7 +52,7 @@ mod.gradientText = function(text, startColor, endColor, colorSpaces)
 		end
 	end
 
-	result = "{#color(" .. colours.title .. ")}" .. result .. "{#reset()}"
+	result = "{#color(" .. colours.title .. ")} " .. result .. "{#reset()}"
 	return result
 end
 

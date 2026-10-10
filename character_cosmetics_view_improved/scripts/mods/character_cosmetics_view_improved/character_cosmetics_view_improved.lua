@@ -1864,6 +1864,9 @@ local Definitions = mod:io_dofile(
 local ViewElementInputLegend = require("scripts/ui/view_elements/view_element_input_legend/view_element_input_legend")
 InventoryCosmeticsView._setup_input_legend = function(self)
 	self._input_legend_element = self:_add_element(ViewElementInputLegend, "input_legend", 10)
+	self._commodores_toggle = self._commodores_toggle
+		or mod:get("show_commodores")
+		or "loc_VPCC_show_all_commodores"
 
 	local legend_inputs = Definitions.legend_inputs
 
