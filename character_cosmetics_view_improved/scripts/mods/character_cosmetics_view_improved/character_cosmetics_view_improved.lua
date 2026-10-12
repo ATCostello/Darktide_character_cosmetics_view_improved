@@ -19,15 +19,6 @@ local ItemUtils = require("scripts/utilities/items")
 local InventoryCosmeticsViewDefinitions =
 	require("scripts/ui/views/inventory_cosmetics_view/inventory_cosmetics_view_definitions")
 
-local CCVI_ICON_FRAME_DELAY = 2
-
-if InventoryCosmeticsViewDefinitions and InventoryCosmeticsViewDefinitions.grid_settings then
-	local grid_settings = InventoryCosmeticsViewDefinitions.grid_settings
-
-	grid_settings.cache_loaded_icons = true
-	grid_settings.widget_icon_load_margin = math.max(grid_settings.widget_icon_load_margin or 0, 2000)
-end
-
 local previewed_items = {}
 Selected_purchase_offer = {}
 current_commodores_offers = {}
@@ -68,16 +59,6 @@ mod:hook(
 		return original_func(self, layout, content_blueprints, ...)
 	end
 )
-
-mod:hook(CLASS.PortraitUI, "load_profile_portrait", function(original_func, self, profile, ...)
-	local render_settings = self._render_settings
-
-	if profile and render_settings and render_settings.viewport_name == "cosmetics_portrait_viewport" then
-		profile.frame_delay = CCVI_ICON_FRAME_DELAY
-	end
-
-	return original_func(self, profile, ...)
-end)
 
 mod.is_unobtainable = function(item)
 	if not item then
