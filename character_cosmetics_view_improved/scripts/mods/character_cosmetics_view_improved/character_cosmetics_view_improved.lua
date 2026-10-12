@@ -16,6 +16,17 @@ local CCVIData = mod:io_dofile(
 	"character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/character_cosmetics_view_improved_data"
 )
 local ItemUtils = require("scripts/utilities/items")
+local InventoryCosmeticsViewDefinitions =
+	require("scripts/ui/views/inventory_cosmetics_view/inventory_cosmetics_view_definitions")
+
+local CCVI_ICON_FRAME_DELAY = 2
+
+if InventoryCosmeticsViewDefinitions and InventoryCosmeticsViewDefinitions.grid_settings then
+	local grid_settings = InventoryCosmeticsViewDefinitions.grid_settings
+
+	grid_settings.cache_loaded_icons = true
+	grid_settings.widget_icon_load_margin = math.max(grid_settings.widget_icon_load_margin or 0, 2000)
+end
 
 local previewed_items = {}
 Selected_purchase_offer = {}
@@ -47,8 +58,6 @@ mod:hook_safe(CLASS.InventoryView, "on_exit", function(self, element)
 	current_commodores_offers = {}
 end)
 
--- Keep cosmetic icons loaded when scrolling past (don't unload/reload)
--- gear_item widgets use 3D render target icons which are expensive to regenerate
 mod:hook(
 	CLASS.ViewElementGrid,
 	"_on_present_grid_layout_changed",
@@ -59,6 +68,16 @@ mod:hook(
 		return original_func(self, layout, content_blueprints, ...)
 	end
 )
+
+mod:hook(CLASS.PortraitUI, "load_profile_portrait", function(original_func, self, profile, ...)
+	local render_settings = self._render_settings
+
+	if profile and render_settings and render_settings.viewport_name == "cosmetics_portrait_viewport" then
+		profile.frame_delay = CCVI_ICON_FRAME_DELAY
+	end
+
+	return original_func(self, profile, ...)
+end)
 
 mod.is_unobtainable = function(item)
 	if not item then
@@ -169,7 +188,6 @@ InventoryCosmeticsView.cb_on_wishlist_pressed = function(self)
 		local previewed_item_name = previewed_item.__master_item.name
 		local previewed_item_dev_name = previewed_item.__master_item.dev_name
 		local previewed_item_display_name = previewed_item.__master_item.display_name
-
 		local previewed_item_gearid = previewed_item.__gear_id
 		local widgets_by_name = self._widgets_by_name
 
@@ -191,22 +209,26 @@ InventoryCosmeticsView.cb_on_wishlist_pressed = function(self)
 		end
 
 		if not already_on_wishlist then
-			-- add
 			local temp = {}
+
 			temp.name = previewed_item_name
 			temp.dev_name = previewed_item_dev_name
 			temp.gearid = previewed_item_gearid
 			temp.display_name = previewed_item_display_name
+
 			if wishlisted_items == nil then
 				wishlisted_items = {}
 			end
 			if wishlisted_items ~= nil then
 				wishlisted_items[#wishlisted_items + 1] = temp
 			end
+
 			self:_play_sound(UISoundEvents.notification_default_enter)
 			widgets_by_name.wishlist_button.style.background_gradient.default_color =
 				Color.terminal_text_warning_light(nil, true)
+
 			local text = Localize(previewed_item_display_name) .. Localize("loc_VPCC_wishlist_added")
+
 			Managers.event:trigger("event_add_notification_message", "default", text)
 		end
 
@@ -320,9 +342,15 @@ mod.display_wishlist_notification = function(self)
 
 						_store_promise:next(function(data)
 							local available_items = {}
+
 							for i, item in pairs(wishlisted_items) do
 								local item_name = item.name
 								local gearid = item.gearid
+
+								if not item_name and not gearid then
+									goto continue
+								end
+
 								local purchase_offer = nil
 								purchase_offer = mod.get_item_in_current_commodores(self, gearid, item.name)
 
@@ -333,6 +361,8 @@ mod.display_wishlist_notification = function(self)
 									end
 									available_items[#available_items + 1] = item_text
 								end
+
+								::continue::
 							end
 
 							if #available_items > 0 then
@@ -355,7 +385,7 @@ mod.display_wishlist_notification = function(self)
 	end
 end
 
-mod:hook_safe(CLASS.StateMainMenu, "on_enter", function(self)
+mod:hook_safe(CLASS.StateMainMenu, "event_main_menu_entered", function(self, profile)
 	mod.display_wishlist_notification(self)
 end)
 
@@ -1864,9 +1894,7 @@ local Definitions = mod:io_dofile(
 local ViewElementInputLegend = require("scripts/ui/view_elements/view_element_input_legend/view_element_input_legend")
 InventoryCosmeticsView._setup_input_legend = function(self)
 	self._input_legend_element = self:_add_element(ViewElementInputLegend, "input_legend", 10)
-	self._commodores_toggle = self._commodores_toggle
-		or mod:get("show_commodores")
-		or "loc_VPCC_show_all_commodores"
+	self._commodores_toggle = self._commodores_toggle or mod:get("show_commodores") or "loc_VPCC_show_all_commodores"
 
 	local legend_inputs = Definitions.legend_inputs
 
