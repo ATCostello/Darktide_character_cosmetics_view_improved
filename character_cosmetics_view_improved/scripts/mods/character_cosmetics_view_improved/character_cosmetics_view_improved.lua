@@ -392,6 +392,10 @@ function string.starts(String, Start)
 end
 
 mod:hook_safe(CLASS.InventoryCosmeticsView, "_preview_element", function(self, element)
+	if not element then
+		return
+	end
+
 	local is_locked = element.locked
 	if is_locked then
 		self._item_name_widget.offset[2] = self._item_name_widget.offset[2] - 80
