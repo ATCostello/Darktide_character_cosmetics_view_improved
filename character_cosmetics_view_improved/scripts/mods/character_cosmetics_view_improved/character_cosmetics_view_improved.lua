@@ -49,14 +49,13 @@ mod:hook_safe(CLASS.InventoryView, "on_exit", function(self, element)
 	current_commodores_offers = {}
 end)
 
-mod:hook(
+mod:hook_safe(
 	CLASS.ViewElementGrid,
 	"_on_present_grid_layout_changed",
-	function(original_func, self, layout, content_blueprints, ...)
+	function(self, layout, content_blueprints, ...)
 		if content_blueprints and content_blueprints.gear_item then
 			content_blueprints.gear_item.unload_icon = function() end
 		end
-		return original_func(self, layout, content_blueprints, ...)
 	end
 )
 
@@ -73,12 +72,7 @@ mod.is_unobtainable = function(item)
 end
 
 mod.get_wishlist = function()
-	local CCVI = get_mod("character_cosmetics_view_improved")
-	if CCVI then
-		wishlisted_items = CCVI:get("wishlisted_items")
-	else
-		wishlisted_items = mod:get("wishlisted_items")
-	end
+	wishlisted_items = mod:get("wishlisted_items")
 
 	if wishlisted_items == nil then
 		wishlisted_items = {}
@@ -86,13 +80,7 @@ mod.get_wishlist = function()
 end
 
 mod.set_wishlist = function()
-	local CCVI = get_mod("character_cosmetics_view_improved")
-	if CCVI then
-		mod:set("wishlisted_items", wishlisted_items)
-		CCVI:set("wishlisted_items", wishlisted_items)
-	else
-		mod:set("wishlisted_items", wishlisted_items)
-	end
+	mod:set("wishlisted_items", wishlisted_items)
 end
 
 mod.focus_on_item = function(self, items)
@@ -175,9 +163,10 @@ InventoryCosmeticsView.cb_on_wishlist_pressed = function(self)
 		local already_on_wishlist = false
 
 		if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
-			for i, item in pairs(wishlisted_items) do
-				if item.dev_name == previewed_item_dev_name then
-					-- already in wishlist, remove
+			for i = #wishlisted_items, 1, -1 do
+				local item = wishlisted_items[i]
+
+				if item and item.dev_name == previewed_item_dev_name then
 					already_on_wishlist = true
 					table.remove(wishlisted_items, i)
 					self:_play_sound(UISoundEvents.notification_default_exit)
@@ -185,6 +174,8 @@ InventoryCosmeticsView.cb_on_wishlist_pressed = function(self)
 						Color.terminal_background_gradient(nil, true)
 					local text = Localize(item.display_name) .. Localize("loc_VPCC_wishlist_removed")
 					Managers.event:trigger("event_add_notification_message", "default", text)
+
+					break
 				end
 			end
 		end
@@ -280,9 +271,13 @@ mod.update_wishlist_icons = function(self)
 				if self._previewed_item and self._previewed_item.__master_item then
 					local previewed_item_name = widget.content.entry.item.__master_item.dev_name
 					if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
-						for i, item in pairs(wishlisted_items) do
-							if item.dev_name == previewed_item_name then
+						for i = #wishlisted_items, 1, -1 do
+							local item = wishlisted_items[i]
+
+							if item and item.dev_name == previewed_item_name then
 								item_on_wishlist = true
+
+								break
 							end
 						end
 					end
@@ -409,9 +404,13 @@ mod:hook_safe(CLASS.InventoryCosmeticsView, "_preview_element", function(self, e
 		local previewed_item = self._previewed_item
 		local previewed_item_name = previewed_item.__master_item.dev_name
 		if wishlisted_items ~= nil and not table.is_empty(wishlisted_items) then
-			for i, item in pairs(wishlisted_items) do
+			for i = #wishlisted_items, 1, -1 do
+				local item = wishlisted_items[i]
+
 				if item and item.dev_name == previewed_item_name then
 					item_on_wishlist = true
+
+					break
 				end
 			end
 		end
@@ -1148,63 +1147,10 @@ StoreView._on_page_index_selected = function(self, page_index, select_element)
 	end)
 end
 
-StoreView.on_exit = function(self)
-	self:_clear_telemetry_name()
-
-	if not self._options_voice_fx then
-		Wwise.set_state("options_voice_fx", "off")
-	end
-
-	if self._world_spawner then
-		self._world_spawner:release_listener()
-		self._world_spawner:destroy()
-
-		self._world_spawner = nil
-	end
-
-	if self._input_legend_element then
-		self._input_legend_element = nil
-
-		self:_remove_element("input_legend")
-	end
-
-	if self._store_promise then
-		self._store_promise:cancel()
-	end
-
-	if self._purchase_promise then
-		self._purchase_promise:cancel()
-	end
-
-	if self._wallet_promise then
-		self._wallet_promise:cancel()
-	end
-
-	if self._dlc_promise and self._dlc_promise:is_pending() then
-		self._dlc_promise:cancel()
-
-		self._dlc_promise = nil
-	end
-
-	self:_destroy_offscreen_gui()
-	self:_destroy_current_grid()
-	self:_unload_url_textures()
-
-	self._store_elements = nil
-
-	StoreView.super.on_exit(self)
-
-	if self._hub_interaction then
-		local level = Managers.state.mission and Managers.state.mission:mission_level()
-
-		if level then
-			Level.trigger_event(level, "lua_premium_store_closed")
-		end
-	end
-
+mod:hook_safe(CLASS.StoreView, "on_exit", function(self)
 	opened_store = false
 	Selected_purchase_offer = {}
-end
+end)
 
 StoreView._initialize_opening_page = function(self)
 	local store_category_index = 1
@@ -1822,13 +1768,6 @@ mod.get_cosmetic_items = function(self, selectedslot)
 			local slots = item.slots
 			local slot = slots and slots[1]
 
-			if item.__gear_id then
-				local gearid = item.__gear_id
-				if gearid then
-					gearid[#gearid + 1] = gearid
-				end
-			end
-
 			local forcurrentbreed = false
 			if slot and slot == selectedslot and item.breeds then
 				for x, breed in pairs(item.breeds) do
@@ -1898,104 +1837,3 @@ InventoryCosmeticsView._setup_input_legend = function(self)
 	end
 end
 
---[[
-InventoryCosmeticsView._setup_sort_options = function(self)
-    if self._inventory_items then
-        self._sort_options = {
-            {
-                display_name = Localize(
-                    "loc_inventory_item_grid_sort_title_format_high_low", true, {
-                        sort_name = Localize("loc_inventory_item_grid_sort_title_rarity")
-                    }
-                ),
-                sort_function = function(a, b)
-                    return ItemUtils.sort_comparator(
-                        {
-                            ">",
-                            ItemUtils.compare_item_rarity,
-                            ">",
-                            ItemUtils.compare_item_level,
-                            "<",
-                            ItemUtils.compare_item_name
-                        }
-                    )(a, b)
-                end
-
-
-            },
-            {
-                display_name = Localize(
-                    "loc_inventory_item_grid_sort_title_format_low_high", true, {
-                        sort_name = Localize("loc_inventory_item_grid_sort_title_rarity")
-                    }
-                ),
-                sort_function = function(a, b)
-                   
-                    return ItemUtils.sort_comparator(
-                        {
-                            "<",
-                            ItemUtils.compare_item_rarity,
-                            ">",
-                            ItemUtils.compare_item_level,
-                            "<",
-                            ItemUtils.compare_item_name
-                        }
-                    )(a, b)
-                end
-
-
-            },
-            {
-                display_name = Localize(
-                    "loc_inventory_item_grid_sort_title_format_increasing_letters", true, {
-                        sort_name = Localize("loc_inventory_item_grid_sort_title_name")
-                    }
-                ),
-                sort_function = function(a, b)
-                    
-                    return ItemUtils.sort_comparator(
-                        {
-                            "<",
-                            ItemUtils.compare_item_name,
-                            "<",
-                            ItemUtils.compare_item_level,
-                            "<",
-                            ItemUtils.compare_item_rarity
-                        }
-                    )(a, b)
-                end
-
-
-            },
-            {
-                display_name = Localize(
-                    "loc_inventory_item_grid_sort_title_format_decreasing_letters", true, {
-                        sort_name = Localize("loc_inventory_item_grid_sort_title_name")
-                    }
-                ),
-                sort_function = function(a, b)
-                   
-                    return ItemUtils.sort_comparator(
-                        {
-                            ">",
-                            ItemUtils.compare_item_name,
-                            "<",
-                            ItemUtils.compare_item_level,
-                            "<",
-                            ItemUtils.compare_item_rarity
-                        }
-                    )(a, b)
-                end
-
-
-            }
-        }
-    end
-    if self._sort_options and #self._sort_options > 0 then
-        local sort_callback = callback(self, "cb_on_sort_button_pressed")
-
-        self._item_grid:setup_sort_button(self._sort_options, sort_callback)
-    end
-
-end
-]]
