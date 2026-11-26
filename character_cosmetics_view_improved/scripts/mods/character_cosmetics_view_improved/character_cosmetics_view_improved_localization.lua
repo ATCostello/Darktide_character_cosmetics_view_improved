@@ -1,5 +1,7 @@
 local mod = get_mod("character_cosmetics_view_improved")
-local gradient_text = mod:io_dofile("character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/utils/gradient_text")
+local gradient_text = mod:io_dofile(
+	"character_cosmetics_view_improved/scripts/mods/character_cosmetics_view_improved/utils/gradient_text"
+)
 
 local colours = {
 	title = "200,140,20",

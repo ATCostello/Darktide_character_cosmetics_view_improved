@@ -49,15 +49,11 @@ mod:hook_safe(CLASS.InventoryView, "on_exit", function(self, element)
 	current_commodores_offers = {}
 end)
 
-mod:hook_safe(
-	CLASS.ViewElementGrid,
-	"_on_present_grid_layout_changed",
-	function(self, layout, content_blueprints, ...)
-		if content_blueprints and content_blueprints.gear_item then
-			content_blueprints.gear_item.unload_icon = function() end
-		end
+mod:hook_safe(CLASS.ViewElementGrid, "_on_present_grid_layout_changed", function(self, layout, content_blueprints, ...)
+	if content_blueprints and content_blueprints.gear_item then
+		content_blueprints.gear_item.unload_icon = function() end
 	end
-)
+end)
 
 mod.is_unobtainable = function(item)
 	if not item then
@@ -1836,4 +1832,3 @@ InventoryCosmeticsView._setup_input_legend = function(self)
 		)
 	end
 end
-
