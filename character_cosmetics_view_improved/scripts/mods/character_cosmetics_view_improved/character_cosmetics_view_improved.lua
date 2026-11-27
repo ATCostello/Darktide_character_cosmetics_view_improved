@@ -297,6 +297,14 @@ mod.wishlist_store_check = function(self, archetype)
 end
 
 mod.display_wishlist_notification = function(self)
+	local character_notifications_enabled = mod:get("toggle_wishlist_notifications") ~= false
+	local WCVI = get_mod("weapon_cosmetics_view_improved")
+	local weapon_notifications_enabled = not WCVI or WCVI:get("toggle_wishlist_notifications") ~= false
+
+	if not character_notifications_enabled and not weapon_notifications_enabled then
+		return
+	end
+
 	local _store_promise_ogryn = mod.wishlist_store_check(self, "ogryn")
 
 	if _store_promise_ogryn then
@@ -316,10 +324,22 @@ mod.display_wishlist_notification = function(self)
 							local available_items = {}
 
 							for i, item in pairs(wishlisted_items) do
+								if not item then
+									goto continue
+								end
+
 								local item_name = item.name
 								local gearid = item.gearid
 
 								if not item_name and not gearid then
+									goto continue
+								end
+
+								if item.parent_item then
+									if not weapon_notifications_enabled then
+										goto continue
+									end
+								elseif not character_notifications_enabled then
 									goto continue
 								end
 

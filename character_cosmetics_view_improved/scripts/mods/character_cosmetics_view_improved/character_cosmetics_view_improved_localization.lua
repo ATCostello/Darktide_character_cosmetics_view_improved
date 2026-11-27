@@ -191,6 +191,18 @@ mod.localisation = {
 		["zh-cn"] = "切换模组名称文本上的彩虹颜色效果。需要重新加载。\n启用后，每次滚动模组菜单时您都会获得小小的愉悦体验，\n禁用后 - 您将是一个普通暗潮玩家，没有彩虹糖（但我仍然爱您）。",
 		["zh-tw"] = "切換模組名稱文字上的彩虹顏色效果。需要重新載入。\n啟用後，每次滾動模組選單時您都會獲得小小的愉悅體驗，\n停用後 - 您將是一個普通暗潮玩家，沒有彩虹糖（但我仍然愛您）。",
 	},
+	toggle_wishlist_notifications = {
+		en = "Toggle Wishlist Notifications",
+		ru = "Уведомления о списке желаемого",
+		["zh-cn"] = "切换愿望单通知",
+		["zh-tw"] = "切換願望單通知",
+	},
+	toggle_wishlist_notifications_tooltip = {
+		en = "Toggles the notifications when on the character select screen for items on your wishlist.",
+		ru = "Включает или отключает уведомления на экране выбора персонажа о предметах из вашего списка желаемого.",
+		["zh-cn"] = "切换在角色选择屏幕上显示愿望单物品的通知。",
+		["zh-tw"] = "切換在角色選擇畫面上顯示願望單物品的通知。",
+	},
 	show_commodores = {
 		en = "Show Commodores Vesture's Items?",
 		ru = "Показывать предметы из магазина «Одеяния от Командора»?",

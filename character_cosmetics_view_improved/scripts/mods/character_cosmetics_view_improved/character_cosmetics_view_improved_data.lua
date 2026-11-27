@@ -17,6 +17,12 @@ return {
 						tooltip = "mod_name_pizazz_tooltip",
 					},
 					{
+						setting_id = "toggle_wishlist_notifications",
+						type = "checkbox",
+						default_value = true,
+						tooltip = "toggle_wishlist_notifications_tooltip",
+					},
+					{
 						setting_id = "show_commodores",
 						type = "dropdown",
 						default_value = "loc_VPCC_show_all_commodores",
