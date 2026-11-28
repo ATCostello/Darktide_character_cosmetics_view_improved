@@ -9,10 +9,6 @@ local colours = {
 	text = "169,191,153",
 }
 
--- Colors for the gradient of the mod name
-local gradient_start = { 76, 255, 201 }
-local gradient_end = { 0, 146, 255 }
-
 local title_colour = colours.title
 
 mod.gradientText = function(text, start_colour, end_colour, colour_spaces)
@@ -24,10 +20,6 @@ mod.gradientText = function(text, start_colour, end_colour, colour_spaces)
 
 	return "{#color(" .. title_colour .. ")} " .. gradient .. "{#reset()}"
 end
-
---local name = mod.gradientText("Alf's DMF Extensions", { 255, 255, 0 }, { 255, 0, 255 }, true)
---Clipboard.put(name)
---mod:echo(name)
 
 local mod_name = {
 	en = "Character Cosmetics View Improved",
@@ -137,7 +129,6 @@ mod.localisation = {
 			.. "{#color("
 			.. colours.text
 			.. ")}Alfthebigheaded\n"
-			.. "{#color("
 			.. "{#reset()}",
 		ru = "{#color("
 			.. colours.text
@@ -150,7 +141,6 @@ mod.localisation = {
 			.. "{#color("
 			.. colours.text
 			.. ")}Alfthebigheaded\n"
-			.. "{#color("
 			.. "{#reset()}",
 		["zh-cn"] = "{#color("
 			.. colours.text
@@ -163,7 +153,6 @@ mod.localisation = {
 			.. "{#color("
 			.. colours.text
 			.. ")}Alfthebigheaded\n"
-			.. "{#color("
 			.. "{#reset()}",
 		["zh-tw"] = "{#color("
 			.. colours.text
@@ -176,7 +165,6 @@ mod.localisation = {
 			.. "{#color("
 			.. colours.text
 			.. ")}Alfthebigheaded\n"
-			.. "{#color("
 			.. "{#reset()}",
 	},
 	mod_name_pizazz_toggle = {

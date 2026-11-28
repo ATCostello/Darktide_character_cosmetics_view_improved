@@ -19,8 +19,11 @@ local legend_inputs = {
 		on_pressed_callback = "cb_on_camera_zoom_toggled",
 		visibility_function = function(parent, id)
 			local display_name = parent._camera_zoomed_in and menu_zoom_out or menu_zoom_in
+			local input_legend_element = parent._input_legend_element
 
-			parent._input_legend_element:set_display_name(id, display_name)
+			if input_legend_element then
+				input_legend_element:set_display_name(id, display_name)
+			end
 
 			return parent._initialize_zoom
 		end,
@@ -65,7 +68,11 @@ local legend_inputs = {
 			local display_name = parent._commodores_toggle
 				or mod:get("show_commodores")
 				or "loc_VPCC_show_all_commodores"
-			parent._input_legend_element:set_display_name(id, display_name)
+			local input_legend_element = parent._input_legend_element
+
+			if input_legend_element then
+				input_legend_element:set_display_name(id, display_name)
+			end
 
 			local previewed_item = parent._previewed_item
 

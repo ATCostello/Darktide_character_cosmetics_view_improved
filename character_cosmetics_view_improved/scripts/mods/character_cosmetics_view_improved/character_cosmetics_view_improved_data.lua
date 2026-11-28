@@ -60,12 +60,6 @@ return {
 					},
 				},
 			},
-
-			-- {
-			--	setting_id = "unhook_cosmetics_from_presets",
-			--	type = "checkbox",
-			--	default_value = false
-			-- },
 		},
 	},
 }
